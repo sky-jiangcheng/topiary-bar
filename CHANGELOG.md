@@ -6,6 +6,7 @@
 
 | 版本 | 内容 |
 |------|------|
+| v1.26.4 | 第三方应用 Quit 响应优化：`NSRunningApplication.terminate()` 推到独立 `Task.detached`，主线程不再同步等待 Apple Event 回复，多个进程并行触发，单个卡死不再阻塞整批；点击 Quit 瞬间从列表移除行（不再等下一个 timer tick，最坏 2s 延迟）；新增 `quittingBundleIDs` 去重同一 app 的重复 Quit 点击、阻止 timer tick 把还在 running 的 app 加回列表（行不会"又出现"）；escalate grace period 3 s → 1.5 s；监听 `NSWorkspace.didTerminateApplicationNotification` / `didLaunchApplicationNotification` 事件驱动刷新（第三方 app 启动/退出时列表立即更新，不再等 timer）；提取 `visibleItems(_:suppressing:)` 纯函数 + 4 个新单元测试覆盖抑制/去重/未知 bundle ID 路径 |
 | v1.26.3 | 修复同一应用在列表中重复出现：一个进程 ≠ 一个应用——Docker Desktop 的 `com.docker.backend` 与 `com.docker.virtualization` 等多进程共享同一 bundle ID，此前逐进程建条目导致 Status Bar 列表出现两行 Docker（Hidden Bar 同理）；现按 bundle ID 去重合并，一个应用一行，合并条目的内存为全部进程之和、PID 取最早启动的进程；同一 bundle ID 同时存在 regular 与 accessory 进程时按 Dock 应用归类，避免两个分区出现相同 id；「退出」升级为终止该 bundle ID 的全部进程（3 秒后对存活者升级强杀）；修复概览页 `Dictionary(uniqueKeysWithValues:)` 遇重复 id 直接崩溃的隐患；列表排序补 bundle ID 决胜，消除同名应用导致的顺序抖动 |
 | v1.26.2 | 缺陷修复与合规补齐：修复内存占用与 PID 停留在首次快照（扫描去重把「内容变化」误判为「无变化」）、菜单栏图标选择与全局热键重启后丢失、清除热键后每次启动自动复活（`UserDefaults` 无法存顶层 nil，改为装箱存储）；补齐 App Store 隐私清单（`UserDefaults` 属 required-reason API，缺失会被拒审）；设置页新增热键清除按钮；应用图标与缩略图按 bundle ID 缓存（此前每 1–2 秒读盘一次）、系统内存轮询改为随弹窗显隐启停；CI 补 mas / devid 双通道编译、发布 job 绑定 environment、弃用的 `altool` 换为 `iTMSTransporter`；修正官网与 README 中已删除功能的描述及一处 404 链接 |
 | v1.26.1 | 主窗口标题栏去重（原生窗口标题 + 小图标 + 切换器，不再重复品牌名）；概览页新增「常驻应用」区——常驻图标被刘海遮挡或隐藏时，可在主面板直接 退出 / 取消常驻，无需依赖那些图标，闭环补全 |
