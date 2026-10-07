@@ -10,6 +10,15 @@ final class MenuBarMonitor {
 
     private var timer: Timer?
     private var refreshObserver: Any?
+    private var terminateObserver: NSObjectProtocol?
+    private var launchObserver: NSObjectProtocol?
+
+    /// Bundle IDs we have asked to quit and not yet seen die. While a bundle
+    /// is in this set the corresponding row is suppressed even if the OS
+    /// still reports the process as running, and a second Quit click for the
+    /// same app is coalesced into the in-flight terminate.
+    private var quittingBundleIDs: Set<String> = []
+
     private let settingsStore: SettingsStore
 
     enum AppType: String {
@@ -79,6 +88,41 @@ final class MenuBarMonitor {
                 self?.restartTimer()
             }
         }
+
+        // Launch / terminate notifications are the exact signal: a quit
+        // initiated from inside the app or another quit dialog refreshes the
+        // list immediately instead of waiting up to `refreshInterval` seconds
+        // for the next timer tick. The timer remains the fallback for
+        // activation-policy changes (which don't post a notification).
+        terminateObserver = NotificationCenter.default.addObserver(
+            forName: NSWorkspace.didTerminateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            // Extract the Sendable bundle ID here, before crossing into the
+            // @MainActor-isolated body — `Notification` is not Sendable and
+            // cannot be captured across the isolation boundary.
+            let bundleID = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?
+                .bundleIdentifier
+            // `queue: .main` delivers on the main run loop, so it is safe to
+            // bridge straight to the @MainActor-isolated self.
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                if let bundleID {
+                    self.quittingBundleIDs.remove(bundleID)
+                }
+                self.refreshMenuItems()
+            }
+        }
+        launchObserver = NotificationCenter.default.addObserver(
+            forName: NSWorkspace.didLaunchApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.refreshMenuItems()
+            }
+        }
     }
 
     func stopMonitoring() {
@@ -87,6 +131,14 @@ final class MenuBarMonitor {
         if let observer = refreshObserver {
             NotificationCenter.default.removeObserver(observer)
             refreshObserver = nil
+        }
+        if let observer = terminateObserver {
+            NotificationCenter.default.removeObserver(observer)
+            terminateObserver = nil
+        }
+        if let observer = launchObserver {
+            NotificationCenter.default.removeObserver(observer)
+            launchObserver = nil
         }
         isMonitoring = false
     }
@@ -113,7 +165,14 @@ final class MenuBarMonitor {
     /// Both scans are sorted by process name, so element-wise `zip` comparison
     /// is aligned; any add/remove shifts the suffix and still reports a change.
     func refreshMenuItems() {
-        let newItems = getMenuItemsFromRunningApps()
+        // Apps we are in the middle of quitting are suppressed here so a
+        // mid-flight timer tick cannot resurrect a row the user just dismissed.
+        // They will return to the list naturally the next time the user starts
+        // the app again.
+        let newItems = Self.visibleItems(
+            getMenuItemsFromRunningApps(),
+            suppressing: quittingBundleIDs
+        )
         // Content (memory / pid) is part of what the UI renders, so any content
         // change must be published — the identity-only `==` that drives SwiftUI
         // diffs deliberately ignores those live values.
@@ -128,6 +187,16 @@ final class MenuBarMonitor {
         if identityChanged {
             NotificationCenter.default.post(name: .menuBarItemsChanged, object: nil)
         }
+    }
+
+    /// Drops items whose bundle ID is in `quittingBundleIDs` — apps the user
+    /// asked to quit but that haven't died yet — so the UI doesn't show rows
+    /// for processes the user just dismissed. Pure for unit testing.
+    static nonisolated func visibleItems(
+        _ items: [MenuBarItem],
+        suppressing quittingBundleIDs: Set<String>
+    ) -> [MenuBarItem] {
+        items.filter { !quittingBundleIDs.contains($0.bundleIdentifier) }
     }
 
     /// System agents that own menu bar / Dock real estate but are not
@@ -327,25 +396,71 @@ final class MenuBarMonitor {
     }
 
 #if !MAC_APP_STORE
-    /// Quits the app with a single button: graceful `terminate()` first, then
-    /// automatic escalation to `forceTerminate()` if it is still alive after a
-    /// short grace period. Replaces the old quit/force-quit pair, which read
-    /// as two identical outcomes to the user.
+    /// Quits the app behind a single button: graceful `terminate()` first,
+    /// then automatic escalation to `forceTerminate()` if it is still alive
+    /// after a short grace period. Replaces the old quit/force-quit pair,
+    /// which read as two identical outcomes to the user.
     ///
     /// One item can stand for several processes (same bundle ID, see
     /// `assembleItems`), so every matching process is terminated; whichever
     /// survive the grace period are force-terminated together.
+    ///
+    /// Optimisations over the previous version:
+    /// 1. The row disappears from the list the moment the button is clicked,
+    ///    not at the next timer tick (up to `refreshInterval` away).
+    /// 2. Each `terminate()` runs on its own detached Task so a stuck target
+    ///    can no longer block the UI thread while waiting on its Apple Event
+    ///    reply.
+    /// 3. Rapid double-clicks on Quit for the same bundle ID are coalesced
+    ///    into the in-flight terminate + escalate cycle.
+    /// 4. The grace period shortens from 3 s to 1.5 s: any app that respects
+    ///    the Apple Event has quit by then, and the timeout exists only for
+    ///    stuck targets.
+    /// 5. `didTerminateApplicationNotification` clears the bookkeeping on
+    ///    success; the row stays gone without a forced timer reconcile.
     func quitApp(_ item: MenuBarMonitor.MenuBarItem) {
-        let matches = NSWorkspace.shared.runningApplications.filter { $0.bundleIdentifier == item.bundleIdentifier }
+        let bundleID = item.bundleIdentifier
+        guard !bundleID.isEmpty else { return }
+        // Coalesce re-entry: a second click while the first terminate is
+        // still in flight would just queue more Apple Events against a
+        // target that already knows it's quitting.
+        guard !quittingBundleIDs.contains(bundleID) else { return }
+
+        let matches = NSWorkspace.shared.runningApplications
+            .filter { $0.bundleIdentifier == bundleID }
         guard !matches.isEmpty else { return }
-        for app in matches {
-            app.terminate()
+
+        quittingBundleIDs.insert(bundleID)
+
+        // -terminate posts an Apple Event ('quit') to the target and waits
+        // synchronously for the reply: a stuck target blocks its caller.
+        // Push each call onto its own detached Task so a single misbehaving
+        // app can't lock up the batch, and so the UI thread is never the
+        // one doing the waiting.
+        let pending = matches
+        for app in pending {
+            let target = app
+            Task.detached {
+                target.terminate()
+            }
         }
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(3))
-            for app in matches where !app.isTerminated {
+
+        // Immediate visual feedback. The terminate notification handler
+        // (and the timer fallback) reconciles with the ground truth once
+        // the process actually exits; this just removes the lag between
+        // click and row disappearing.
+        menuBarItems.removeAll { $0.bundleIdentifier == bundleID }
+
+        // Escalation deadline. The terminate notification clears the
+        // `quittingBundleIDs` entry on success, so this Task only wakes up
+        // to force-terminate stragglers and tidy the bookkeeping.
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(1.5))
+            guard let self else { return }
+            for app in pending where !app.isTerminated {
                 app.forceTerminate()
             }
+            self.quittingBundleIDs.remove(bundleID)
         }
     }
 #endif

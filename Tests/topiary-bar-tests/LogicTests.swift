@@ -239,6 +239,95 @@ final class LogicTests: XCTestCase {
         XCTAssertTrue(store.showDockIcon)
     }
 
+    // MARK: - MenuBarMonitor.visibleItems suppression filter
+
+    func testVisibleItemsDropsQuittingBundleIDs() {
+        // The suppression filter must remove rows whose bundle ID is in the
+        // "currently quitting" set, so a mid-flight timer tick cannot
+        // resurrect a row the user just dismissed.
+        let items = [
+            MenuBarMonitor.MenuBarItem(
+                id: "com.keeping",
+                bundleIdentifier: "com.keeping",
+                processName: "Keeping",
+                icon: nil,
+                appType: .statusbarOnly
+            ),
+            MenuBarMonitor.MenuBarItem(
+                id: "com.quitting",
+                bundleIdentifier: "com.quitting",
+                processName: "Quitting",
+                icon: nil,
+                appType: .statusbarOnly
+            ),
+        ]
+
+        let result = MenuBarMonitor.visibleItems(items, suppressing: ["com.quitting"])
+        XCTAssertEqual(result.map(\.bundleIdentifier), ["com.keeping"])
+    }
+
+    func testVisibleItemsReturnsAllWhenNoSuppression() {
+        let items = [
+            MenuBarMonitor.MenuBarItem(
+                id: "com.a",
+                bundleIdentifier: "com.a",
+                processName: "A",
+                icon: nil,
+                appType: .statusbarOnly
+            ),
+            MenuBarMonitor.MenuBarItem(
+                id: "com.b",
+                bundleIdentifier: "com.b",
+                processName: "B",
+                icon: nil,
+                appType: .statusbarOnly
+            ),
+        ]
+
+        XCTAssertEqual(
+            MenuBarMonitor.visibleItems(items, suppressing: []).map(\.bundleIdentifier),
+            ["com.a", "com.b"]
+        )
+    }
+
+    func testVisibleItemsWithUnknownSuppressionReturnsAll() {
+        // Suppressing a bundle ID that isn't in the list must be a no-op.
+        let items = [
+            MenuBarMonitor.MenuBarItem(
+                id: "com.a",
+                bundleIdentifier: "com.a",
+                processName: "A",
+                icon: nil,
+                appType: .statusbarOnly
+            ),
+        ]
+
+        XCTAssertEqual(
+            MenuBarMonitor.visibleItems(items, suppressing: ["com.unknown"]).map(\.bundleIdentifier),
+            ["com.a"]
+        )
+    }
+
+    // MARK: - quitApp
+
+    func testQuitAppOnUnknownBundleIDIsNoOp() {
+        // Without a populated `menuBarItems` and with no real running app
+        // matching the bundle ID, `quitApp` must early-return without
+        // touching `menuBarItems` or any cached state.
+        let monitor = MenuBarMonitor(settingsStore: makeStore())
+        let unknown = MenuBarMonitor.MenuBarItem(
+            id: "com.example.nonexistent",
+            bundleIdentifier: "com.example.nonexistent",
+            processName: "Nonexistent",
+            icon: nil,
+            appType: .statusbarOnly
+        )
+
+        monitor.quitApp(unknown)
+
+        XCTAssertEqual(monitor.menuBarItems.count, 0)
+    }
+
     // MARK: - MenuBarItem identity vs. content
 
     func testMenuBarItemEqualityDetectsPresentationChanges() {
