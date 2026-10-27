@@ -22,6 +22,49 @@ enum Theme {
         static let tile: CGFloat = 10
         static let card: CGFloat = 12
     }
+
+    /// Canonical spacing scale. Use these instead of inline literals so all
+    /// surfaces share the same rhythm.
+    enum Spacing {
+        static let xs: CGFloat = 4
+        static let sm: CGFloat = 8
+        static let md: CGFloat = 12
+        static let lg: CGFloat = 16
+        static let xl: CGFloat = 24
+    }
+
+    /// Semantic color aliases. Views reference these names so intent is clear
+    /// and a future palette swap only touches this file.
+    ///
+    /// Colour budget, in one place: system blue is reserved for controls
+    /// (selection, prominent buttons), orange for warning and destructive
+    /// affordances, and the brand green below for the product talking about
+    /// itself and for the memory readout. Green is deliberately never a
+    /// control colour — a tinted button would compete with the user's own
+    /// accent choice and quietly turn a brand colour into a status colour.
+    enum Color {
+        /// Warning / destructive accent (occlusion banners, Quit affordances).
+        static let warning = SwiftUI.Color.orange
+        /// Subtle fill for secondary containers (search fields, section headers).
+        static let secondaryFill = SwiftUI.Color.secondary.opacity(0.1)
+        /// Slightly stronger fill for cards and memory bars.
+        static let tertiaryFill = SwiftUI.Color.secondary.opacity(0.08)
+
+        /// The brand hue — the icon's own green, lifted to a mid tone.
+        ///
+        /// `#2E7D52` on light (5.03:1 on white) and `#7CBE96` on dark
+        /// (7.83:1 on the dark canvas); the pair is the contract shared with
+        /// `tools/generate_app_icon.py` (BRAND_GREEN) and the website
+        /// (`--brand`), and `--check-brand` fails the build if any of the
+        /// three drifts apart. Do not use one on the other mode's ground:
+        /// #2E7D52 only reaches 3.38:1 on dark, #7CBE96 only 2.17:1 on light.
+        static let brand = SwiftUI.Color(nsColor: NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            return isDark
+                ? NSColor(srgbRed: 124 / 255, green: 190 / 255, blue: 150 / 255, alpha: 1)
+                : NSColor(srgbRed: 46 / 255, green: 125 / 255, blue: 82 / 255, alpha: 1)
+        })
+    }
 }
 
 // MARK: - App icon
@@ -46,6 +89,52 @@ struct AppIconView: View {
             }
         }
         .frame(width: size, height: size)
+    }
+}
+
+// MARK: - App row (shared)
+
+/// Data-only row content shared by the popover list and the main-window
+/// sidebar: icon, name (+ optional trailing accessory) and memory footprint.
+/// Each surface wraps it with its own paddings and hover actions so the brand
+/// reads identically everywhere while behavior stays surface-specific.
+struct AppRowContent<Accessory: View>: View {
+    let item: MenuBarMonitor.MenuBarItem
+    var iconSize: CGFloat
+    var nameFont: Font
+    var nameAccessory: Accessory
+
+    init(
+        item: MenuBarMonitor.MenuBarItem,
+        iconSize: CGFloat = 28,
+        nameFont: Font = .body,
+        @ViewBuilder nameAccessory: () -> Accessory = { EmptyView() }
+    ) {
+        self.item = item
+        self.iconSize = iconSize
+        self.nameFont = nameFont
+        self.nameAccessory = nameAccessory()
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            AppIconView(icon: item.icon, size: iconSize)
+
+            Text(item.processName)
+                .font(nameFont)
+                .lineLimit(1)
+                .foregroundStyle(.primary)
+
+            nameAccessory
+
+            Spacer()
+
+            if let footprint = item.memoryFootprint {
+                Text(Format.memory(footprint))
+                    .font(.callout.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }
 
@@ -85,28 +174,32 @@ enum Format {
 
 // MARK: - Stat chip
 
-/// Compact read-only summary chip for the overview state. Filtering is owned
-/// by the sidebar's segmented picker, so chips are deliberately not buttons.
+/// Compact read-only summary chip for the overview state. Uses a macOS-native
+/// rectangular card instead of an iOS-style capsule. Filtering is owned by the
+/// sidebar's segmented picker, so chips are deliberately not buttons.
 struct StatChip: View {
     let systemImage: String
     let title: String
     let value: Int
 
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.callout)
-                .foregroundStyle(.secondary)
+        VStack(spacing: Theme.Spacing.xs) {
+            HStack(spacing: 5) {
+                Image(systemName: systemImage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Text("\(value)")
-                .font(.title3)
+                .font(.title2)
                 .fontWeight(.semibold)
                 .monospacedDigit()
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.quaternary.opacity(0.6), in: Capsule())
+        .frame(minWidth: 80)
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, Theme.Spacing.sm)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
     }
 }

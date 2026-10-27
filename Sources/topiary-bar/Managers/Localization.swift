@@ -123,6 +123,9 @@ struct L10nTable {
     var hotKeyConflict: String
     // Overview — resident apps
     var residentAppsTitle: String
+    // Quit confirmation (popover row)
+    var quitConfirmTitle: String
+    var quitConfirmMessage: String
 }
 
 enum L10n {
@@ -184,7 +187,9 @@ enum L10n {
         hotKeyNone: "Disabled",
         hotKeyClear: "Clear",
         hotKeyConflict: "This shortcut is already taken — please choose another.",
-        residentAppsTitle: "Resident Apps"
+        residentAppsTitle: "Resident Apps",
+        quitConfirmTitle: "Quit “%@”?",
+        quitConfirmMessage: "This will terminate the app immediately."
     )
 
     static let zhHans = L10nTable(
@@ -245,7 +250,9 @@ enum L10n {
         hotKeyNone: "未设置",
         hotKeyClear: "清除",
         hotKeyConflict: "该快捷键已被其他应用占用，请更换一个。",
-        residentAppsTitle: "常驻应用"
+        residentAppsTitle: "常驻应用",
+        quitConfirmTitle: "退出「%@」？",
+        quitConfirmMessage: "该应用将被立即终止。"
     )
 
     static let ja = L10nTable(
@@ -306,7 +313,9 @@ enum L10n {
         hotKeyNone: "未設定",
         hotKeyClear: "クリア",
         hotKeyConflict: "このショートカットは既に使用されています。別のものを設定してください。",
-        residentAppsTitle: "常駐アプリ"
+        residentAppsTitle: "常駐アプリ",
+        quitConfirmTitle: "「%@」を終了しますか？",
+        quitConfirmMessage: "このアプリは直ちに終了します。"
     )
 
     static let de = L10nTable(
@@ -367,7 +376,9 @@ enum L10n {
         hotKeyNone: "Nicht festgelegt",
         hotKeyClear: "Löschen",
         hotKeyConflict: "Dieser Kurzbefehl ist bereits belegt — bitte einen anderen wählen.",
-        residentAppsTitle: "Angepinnte Apps"
+        residentAppsTitle: "Angepinnte Apps",
+        quitConfirmTitle: "„%@“ beenden?",
+        quitConfirmMessage: "Die App wird sofort beendet."
     )
 
     static let es = L10nTable(
@@ -428,7 +439,9 @@ enum L10n {
         hotKeyNone: "Sin atajo",
         hotKeyClear: "Borrar",
         hotKeyConflict: "Este atajo ya está en uso — elige otro.",
-        residentAppsTitle: "Apps fijadas"
+        residentAppsTitle: "Apps fijadas",
+        quitConfirmTitle: "¿Salir de «%@»?",
+        quitConfirmMessage: "La app se cerrará de inmediato."
     )
 
     // Memoized: Locale.preferredLanguages is stable within a launch session,

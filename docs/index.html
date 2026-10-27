@@ -8,8 +8,13 @@
       data-title-zh-CN="Topiary - macOS 菜单栏管理工具"
       data-title-en="Topiary - macOS Menu Bar Manager"
     >Topiary - macOS 菜单栏管理工具</title>
-    <link rel="stylesheet" href="./assets/site.css">
-    <script src="./assets/i18n.js" defer></script>
+    <link rel="icon" type="image/png" href="./assets/icon-256.png?v=5">
+    <link rel="apple-touch-icon" href="./assets/icon-256.png?v=5">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)">
+    <!-- ?v= cache stamp: bust stale stylesheets when the markup moves on. -->
+    <link rel="stylesheet" href="./assets/site.css?v=5">
+    <script src="./assets/i18n.js?v=5" defer></script>
   </head>
   <body>
     <main>
@@ -19,14 +24,43 @@
       </div>
 
       <section data-lang-block="zh-CN">
-        <h1>Topiary</h1>
-        <p>macOS 菜单栏管理工具，自动检测并管理状态栏和 Dock 应用。</p>
+        <div class="hero">
+          <!-- Icon mirrors the shipped app: light glass panel by default,
+               dark glass panel in dark mode (same pair the app ships). -->
+          <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="./assets/icon-256-dark.png?v=5">
+            <img class="hero-icon" src="./assets/icon-256.png?v=5" alt="Topiary 应用图标" width="96" height="96">
+          </picture>
+          <h1>Topiary</h1>
+          <p class="subtitle">macOS 菜单栏管理工具，自动检测并管理状态栏和 Dock 应用。</p>
+          <p class="cta-row">
+            <a class="cta" href="https://github.com/sky-jiangcheng/topiary-bar/releases/latest">
+              <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M7 3a1 1 0 0 1 2 0v6.58l2.29-2.29a1 1 0 1 1 1.42 1.41l-4 4a1 1 0 0 1-1.42 0l-4-4a1 1 0 0 1 1.42-1.41L7 9.58V3z"/><path d="M3 13a1 1 0 0 1 1-1h8a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1z"/></svg>
+              从 GitHub Releases 下载 DMG
+            </a>
+          </p>
+          <p class="cta-note">Developer ID 公证版，含退出功能；Mac App Store 版受沙盒限制不含退出，另行分发。</p>
 
-        <h2>下载</h2>
-        <p>
-          <a href="https://github.com/sky-jiangcheng/topiary-bar/releases/latest">从 GitHub Releases 下载最新 DMG</a>
-          （Developer ID 公证版，含退出功能）。Mac App Store 版受沙盒限制不含退出，另行分发。
-        </p>
+          <!-- App window illustration: macOS frame + stylized app UI
+               (skeleton bars instead of fabricated data). -->
+          <div class="window-mock" aria-hidden="true">
+            <div class="wm-titlebar">
+              <span class="wm-dot wm-red"></span><span class="wm-dot wm-yellow"></span><span class="wm-dot wm-green"></span>
+              <span class="wm-title">Topiary</span>
+            </div>
+            <div class="wm-body">
+              <div class="wm-memory"><span>内存</span><span class="wm-memory-bar"><i style="width:62%"></i></span><span>62%</span></div>
+              <div class="wm-search"></div>
+              <div class="wm-section">状态栏 · 3</div>
+              <div class="wm-row"><span class="wm-icon" style="--c:#48484a"></span><span class="wm-name" style="--w:38%"></span><span class="wm-mem" style="--w:14%"></span></div>
+              <div class="wm-row"><span class="wm-icon" style="--c:#8e8e93"></span><span class="wm-name" style="--w:30%"></span><span class="wm-mem" style="--w:18%"></span></div>
+              <div class="wm-row"><span class="wm-icon" style="--c:#5e5e62"></span><span class="wm-name" style="--w:34%"></span><span class="wm-mem" style="--w:11%"></span></div>
+              <div class="wm-section">Dock · 2</div>
+              <div class="wm-row"><span class="wm-icon" style="--c:#c7c7cc"></span><span class="wm-name" style="--w:42%"></span><span class="wm-mem" style="--w:22%"></span></div>
+              <div class="wm-row"><span class="wm-icon" style="--c:#636366"></span><span class="wm-name" style="--w:26%"></span><span class="wm-mem" style="--w:9%"></span></div>
+            </div>
+          </div>
+        </div>
 
         <h2>功能特性</h2>
         <div class="feature-grid">
@@ -111,24 +145,58 @@
           <li>菜单栏图标初始位置由系统决定（首次落在最左侧、靠刘海）。<strong>⌘-拖动一次</strong>即可固定，位置跨启动保留</li>
           <li>不隐藏其他应用的真实菜单栏图标（AX 隐藏方案已于 v1.6.0 移除），需精简请搭配 Hidden Bar / Ice 等工具；这些工具运行时本应用不会误报刘海遮挡</li>
           <li>Mac App Store 版受沙盒限制，<code>NSRunningApplication.terminate()</code> 被系统拦截，因此不含退出功能</li>
-          <li>深色图标变体仅在 Xcode 资产目录流程下生效，命令行 <code>iconutil</code> 生成的 <code>.icns</code> 只含浅色图标</li>
+          <li>应用图标没有深色变体：macOS 26 起系统读取资产目录里的 <code>Assets.car</code> 并<strong>自己套形状</strong>，因此目录内必须是满幅方图；而 <code>actool</code> 不接受 mac 图标的深色外观声明（十槽与单尺寸两种写法都被判为未分配），真正的深色 app icon 需要 Icon Composer 的分层 <code>.icon</code> 格式。macOS 14/15 仍读 <code>AppIcon.icns</code>，那条路径不会套形状，所以 <code>.icns</code> 自带圆角</li>
+          <li>弹窗与主窗口的搜索框各自独立、互不同步 — 这是刻意的设计决策：弹窗面向瞬时快速查看，主窗口面向常驻管理，搜索场景不同</li>
         </ul>
 
-        <h2>链接</h2>
-        <p><a href="./support/">技术支持</a></p>
-        <p><a href="./privacy/">隐私政策</a></p>
-        <p><a href="https://github.com/sky-jiangcheng/topiary-bar">GitHub</a></p>
+        <footer class="site-footer">
+          <nav class="footer-links" aria-label="页脚链接">
+            <a href="./support/">技术支持</a>
+            <a href="./privacy/">隐私政策</a>
+            <a href="https://github.com/sky-jiangcheng/topiary-bar">GitHub</a>
+          </nav>
+          <p class="copyright">© 2026 Topiary</p>
+        </footer>
       </section>
 
       <section data-lang-block="en" hidden>
-        <h1>Topiary</h1>
-        <p>A macOS menu bar utility that automatically detects and manages status bar and Dock apps.</p>
+        <div class="hero">
+          <!-- Icon mirrors the shipped app: light glass panel by default,
+               dark glass panel in dark mode (same pair the app ships). -->
+          <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="./assets/icon-256-dark.png?v=5">
+            <img class="hero-icon" src="./assets/icon-256.png?v=5" alt="Topiary app icon" width="96" height="96">
+          </picture>
+          <h1>Topiary</h1>
+          <p class="subtitle">A macOS menu bar utility that automatically detects and manages status bar and Dock apps.</p>
+          <p class="cta-row">
+            <a class="cta" href="https://github.com/sky-jiangcheng/topiary-bar/releases/latest">
+              <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M7 3a1 1 0 0 1 2 0v6.58l2.29-2.29a1 1 0 1 1 1.42 1.41l-4 4a1 1 0 0 1-1.42 0l-4-4a1 1 0 0 1 1.42-1.41L7 9.58V3z"/><path d="M3 13a1 1 0 0 1 1-1h8a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1z"/></svg>
+              Download the DMG from GitHub Releases
+            </a>
+          </p>
+          <p class="cta-note">Developer ID notarized, includes Quit; the Mac App Store build is sandboxed and ships without it, distributed separately.</p>
 
-        <h2>Download</h2>
-        <p>
-          <a href="https://github.com/sky-jiangcheng/topiary-bar/releases/latest">Get the latest DMG from GitHub Releases</a>
-          (Developer ID notarized, includes Quit). The Mac App Store build is sandboxed and ships without it.
-        </p>
+          <!-- App window illustration: macOS frame + stylized app UI
+               (skeleton bars instead of fabricated data). -->
+          <div class="window-mock" aria-hidden="true">
+            <div class="wm-titlebar">
+              <span class="wm-dot wm-red"></span><span class="wm-dot wm-yellow"></span><span class="wm-dot wm-green"></span>
+              <span class="wm-title">Topiary</span>
+            </div>
+            <div class="wm-body">
+              <div class="wm-memory"><span>Memory</span><span class="wm-memory-bar"><i style="width:62%"></i></span><span>62%</span></div>
+              <div class="wm-search"></div>
+              <div class="wm-section">Status Bar · 3</div>
+              <div class="wm-row"><span class="wm-icon" style="--c:#48484a"></span><span class="wm-name" style="--w:38%"></span><span class="wm-mem" style="--w:14%"></span></div>
+              <div class="wm-row"><span class="wm-icon" style="--c:#8e8e93"></span><span class="wm-name" style="--w:30%"></span><span class="wm-mem" style="--w:18%"></span></div>
+              <div class="wm-row"><span class="wm-icon" style="--c:#5e5e62"></span><span class="wm-name" style="--w:34%"></span><span class="wm-mem" style="--w:11%"></span></div>
+              <div class="wm-section">Dock · 2</div>
+              <div class="wm-row"><span class="wm-icon" style="--c:#c7c7cc"></span><span class="wm-name" style="--w:42%"></span><span class="wm-mem" style="--w:22%"></span></div>
+              <div class="wm-row"><span class="wm-icon" style="--c:#636366"></span><span class="wm-name" style="--w:26%"></span><span class="wm-mem" style="--w:9%"></span></div>
+            </div>
+          </div>
+        </div>
 
         <h2>Features</h2>
         <div class="feature-grid">
@@ -213,13 +281,18 @@
           <li>The menu bar icon's initial position is system-controlled (fresh items land leftmost, next to the notch). <strong>⌘-drag it once</strong> to where you want it; the position is remembered across launches</li>
           <li>Topiary does not hide other apps' real menu bar icons (AX-based hiding was removed in v1.6.0). Pair it with Hidden Bar / Ice for that — occlusion warnings are suppressed automatically while one runs</li>
           <li>The Mac App Store build is sandboxed and <code>NSRunningApplication.terminate()</code> is blocked, so Quit is compiled out of that channel</li>
-          <li>Dark app icon variants only apply via the Xcode asset-catalog flow; the command-line <code>iconutil</code> build produces a light-only <code>.icns</code></li>
+          <li>The app icon has no dark variant: on macOS 26+ the system reads <code>Assets.car</code> and applies the icon shape itself, so the catalog must hold full-bleed square artwork; <code>actool</code> refuses dark appearance declarations for mac app icons (both the ten-slot and single-size layouts come back as unassigned), and a real dark app icon needs Icon Composer's layered <code>.icon</code> format. macOS 14/15 still read <code>AppIcon.icns</code>, which is never masked by the system, so that copy carries its own rounded corners</li>
+          <li>The popover and the main window deliberately keep independent search fields — a design decision: the popover is a transient quick glance, the main window is the standing manager, and the two search contexts differ</li>
         </ul>
 
-        <h2>Links</h2>
-        <p><a href="./support/">Support</a></p>
-        <p><a href="./privacy/">Privacy Policy</a></p>
-        <p><a href="https://github.com/sky-jiangcheng/topiary-bar">GitHub</a></p>
+        <footer class="site-footer">
+          <nav class="footer-links" aria-label="Footer links">
+            <a href="./support/">Support</a>
+            <a href="./privacy/">Privacy Policy</a>
+            <a href="https://github.com/sky-jiangcheng/topiary-bar">GitHub</a>
+          </nav>
+          <p class="copyright">© 2026 Topiary</p>
+        </footer>
       </section>
     </main>
   </body>

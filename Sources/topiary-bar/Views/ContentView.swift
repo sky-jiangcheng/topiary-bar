@@ -20,34 +20,29 @@ struct ContentView: View {
 
     private var l10n: L10nTable { settings.l10n }
 
-    /// Type filter first, then the search query over name and bundle ID.
-    /// Mirrors PopoverView so both surfaces find the same apps.
+    /// Type filter first, then the shared search over name and bundle ID
+    /// (same matcher as the popover, so both surfaces find the same apps).
     private var filteredItems: [MenuBarMonitor.MenuBarItem] {
         let scoped: [MenuBarMonitor.MenuBarItem]
         switch selectedFilter {
         case .all:
             scoped = menuBarMonitor.menuBarItems
         case .statusbar:
-            scoped = menuBarMonitor.menuBarItems.filter { $0.appType == .statusbarOnly }
+            scoped = menuBarMonitor.menuBarItems.statusbarOnly
         case .dock:
-            scoped = menuBarMonitor.menuBarItems.filter { $0.appType == .dockOnly }
+            scoped = menuBarMonitor.menuBarItems.dockOnly
         }
 
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return scoped }
-        return scoped.filter {
-            $0.processName.localizedCaseInsensitiveContains(query)
-                || $0.bundleIdentifier.localizedCaseInsensitiveContains(query)
-        }
+        return MenuBarMonitor.matching(scoped, query: searchText)
     }
 
     /// Status Bar apps lead: they are the reason this app exists.
     private var statusbarItems: [MenuBarMonitor.MenuBarItem] {
-        filteredItems.filter { $0.appType == .statusbarOnly }
+        filteredItems.statusbarOnly
     }
 
     private var dockItems: [MenuBarMonitor.MenuBarItem] {
-        filteredItems.filter { $0.appType == .dockOnly }
+        filteredItems.dockOnly
     }
 
     /// Resolved from the full item list, so a selection survives filtering:
@@ -204,11 +199,13 @@ struct ContentView: View {
         if let selectedItem {
             AppDetailView(item: selectedItem, l10n: l10n)
         } else {
+            // One traversal feeds both type counts (was three `.filter` passes).
+            let counts = menuBarMonitor.menuBarItems.countsByType
             OverviewView(
                 l10n: l10n,
                 total: menuBarMonitor.menuBarItems.count,
-                statusbarCount: menuBarMonitor.menuBarItems.filter { $0.appType == .statusbarOnly }.count,
-                dockCount: menuBarMonitor.menuBarItems.filter { $0.appType == .dockOnly }.count
+                statusbarCount: counts.statusbarOnly,
+                dockCount: counts.dockOnly
             )
         }
     }
@@ -223,29 +220,16 @@ private struct SidebarRow: View {
     let onSelect: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            AppIconView(icon: item.icon, size: 28)
-
-            // Single-line row, consistent with the popover list: the section
-            // header carries the type, actions live in the detail pane.
-            Text(item.processName)
-                .font(.body)
-                .lineLimit(1)
-
+        // Shared data-only row (icon + name + memory) wrapped in the
+        // sidebar's selection behavior; the pin badge rides in as a name
+        // accessory so the popover row and this one stay visually identical.
+        AppRowContent(item: item, iconSize: 28) {
             // Pinned apps carry their own resident status item in the menu
             // bar — mark it right in the list.
             if settings.isPinned(item.id) {
                 Image(systemName: "pin.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
-            }
-
-            Spacer()
-
-            if let footprint = item.memoryFootprint {
-                Text(Format.memory(footprint))
-                    .font(.callout.monospacedDigit())
-                    .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 6)
@@ -294,26 +278,38 @@ private struct OverviewView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            // The real app icon as the brand mark (NSApp carries the bundle
-            // icon; the placeholder SF symbol only appears in unbundled runs).
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 56, height: 56)
-
-            VStack(spacing: 4) {
-                Text(Brand.name)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                Text(l10n.menuBarManager)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            // Small brand mark anchors the top of the overview without
+            // consuming too much space. The detail pane is the protagonist.
+            HStack(spacing: 10) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 32, height: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(Brand.name)
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    Text(l10n.menuBarManager)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            HStack(spacing: 12) {
-                StatChip(systemImage: "list.bullet", title: l10n.total, value: total)
-                StatChip(systemImage: "menubar.rectangle", title: l10n.statusBar, value: statusbarCount)
-                StatChip(systemImage: "dock.rectangle", title: l10n.dock, value: dockCount)
+            // macOS-native stat cards: vertical stack of label + number,
+            // rectangular background instead of iOS-style capsule. The
+            // selection prompt rides below as their subtitle, anchored to
+            // the stat block instead of floating under the resident list.
+            VStack(spacing: Theme.Spacing.sm) {
+                HStack(spacing: Theme.Spacing.md) {
+                    StatChip(systemImage: "list.bullet", title: l10n.total, value: total)
+                    StatChip(systemImage: "menubar.rectangle", title: l10n.statusBar, value: statusbarCount)
+                    StatChip(systemImage: "dock.rectangle", title: l10n.dock, value: dockCount)
+                }
+
+                Text(l10n.selectAppPrompt)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
 
             if visibilityMonitor.hasOcclusion {
@@ -321,29 +317,31 @@ private struct OverviewView: View {
                     Label(l10n.notchWarningTitle, systemImage: "exclamationmark.triangle.fill")
                         .font(.callout)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.Color.warning)
                     Text(occlusionBody)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                .padding(12)
+                .padding(Theme.Spacing.md)
                 .frame(maxWidth: 420, alignment: .leading)
-                .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.control)
+                        .fill(Theme.Color.warning.opacity(0.12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Theme.Radius.control)
+                                .stroke(Theme.Color.warning.opacity(0.35), lineWidth: 1)
+                        )
+                )
             }
 
             if !pinnedItems.isEmpty {
                 residentSection
             }
 
-            Text(l10n.selectAppPrompt)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(24)
+        .padding(Theme.Spacing.xl)
     }
 
     /// Direct controls for resident apps: their own menu bar icons may be
@@ -376,6 +374,7 @@ private struct OverviewView: View {
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.mini)
+                        .foregroundStyle(Theme.Color.warning)
                     }
 #endif
 
@@ -397,7 +396,7 @@ private struct OverviewView: View {
                 }
             }
         }
-        .frame(width: 320)
+        .frame(maxWidth: 360)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
     }
 }

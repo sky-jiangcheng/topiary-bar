@@ -1,27 +1,24 @@
 import SwiftUI
 
+/// Icon-style picker for the menu bar aggregation icon. Intentionally exposes
+/// only the grid of option buttons — the section title and description caption
+/// are owned by SettingsView's Section header so they render exactly once.
 struct AggregationIconSelector: View {
     @Binding var selectedIcon: SettingsStore.AggregationIconType
     let l10n: L10nTable
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(l10n.sectionAggIcon)
-                .font(.headline)
-
-            Text(l10n.aggIconCaption)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 12) {
-                ForEach(SettingsStore.AggregationIconType.allCases) { iconType in
-                    IconOptionButton(
-                        iconType: iconType,
-                        title: title(for: iconType),
-                        isSelected: selectedIcon == iconType,
-                        action: { selectedIcon = iconType }
-                    )
-                }
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 100), spacing: 10)],
+            spacing: 10
+        ) {
+            ForEach(SettingsStore.AggregationIconType.allCases) { iconType in
+                IconOptionButton(
+                    iconType: iconType,
+                    title: title(for: iconType),
+                    isSelected: selectedIcon == iconType,
+                    action: { selectedIcon = iconType }
+                )
             }
         }
     }

@@ -508,6 +508,47 @@ final class MenuBarMonitor {
     }
 }
 
+extension MenuBarMonitor {
+    /// Case-insensitive search over process name and bundle ID; a blank
+    /// query passes everything through. One implementation for both the
+    /// popover and the main-window sidebar so the same query always finds
+    /// the same apps.
+    static func matching(_ items: [MenuBarItem], query: String) -> [MenuBarItem] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return items }
+        return items.filter {
+            $0.processName.localizedCaseInsensitiveContains(trimmed)
+                || $0.bundleIdentifier.localizedCaseInsensitiveContains(trimmed)
+        }
+    }
+}
+
+// MARK: - Shared list shaping
+
+extension [MenuBarMonitor.MenuBarItem] {
+    var statusbarOnly: Self { filter { $0.appType == .statusbarOnly } }
+
+    var dockOnly: Self { filter { $0.appType == .dockOnly } }
+
+    /// Heaviest memory users first — the popover's ordering, so the hog is
+    /// always the top row.
+    var sortedByMemoryDesc: Self {
+        sorted { ($0.memoryFootprint ?? 0) > ($1.memoryFootprint ?? 0) }
+    }
+
+    /// Single-pass type counts for the overview state; replaces the three
+    /// separate `.filter` traversals the detail pane used to run.
+    var countsByType: (statusbarOnly: Int, dockOnly: Int) {
+        reduce(into: (0, 0)) { acc, item in
+            if item.appType == .statusbarOnly {
+                acc.statusbarOnly += 1
+            } else {
+                acc.dockOnly += 1
+            }
+        }
+    }
+}
+
 extension Notification.Name {
     static let refreshIntervalChanged = Notification.Name("refreshIntervalChanged")
     static let menuBarItemsChanged = Notification.Name("menuBarItemsChanged")

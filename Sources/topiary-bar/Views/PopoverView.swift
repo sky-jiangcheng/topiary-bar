@@ -16,28 +16,17 @@ struct PopoverView: View {
     private var l10n: L10nTable { settings.l10n }
 
     private var filteredItems: [MenuBarMonitor.MenuBarItem] {
-        let base = menuBarMonitor.menuBarItems
-        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return base
-        }
-        return base.filter { item in
-            item.processName.localizedCaseInsensitiveContains(searchText)
-                || item.bundleIdentifier.localizedCaseInsensitiveContains(searchText)
-        }
+        MenuBarMonitor.matching(menuBarMonitor.menuBarItems, query: searchText)
     }
 
     /// Status Bar apps lead; within each section the heaviest memory users
     /// surface first, so the hog is always the top row.
     private var statusbarItems: [MenuBarMonitor.MenuBarItem] {
-        filteredItems
-            .filter { $0.appType == .statusbarOnly }
-            .sorted { ($0.memoryFootprint ?? 0) > ($1.memoryFootprint ?? 0) }
+        filteredItems.statusbarOnly.sortedByMemoryDesc
     }
 
     private var dockItems: [MenuBarMonitor.MenuBarItem] {
-        filteredItems
-            .filter { $0.appType == .dockOnly }
-            .sorted { ($0.memoryFootprint ?? 0) > ($1.memoryFootprint ?? 0) }
+        filteredItems.dockOnly.sortedByMemoryDesc
     }
 
     var body: some View {
@@ -72,13 +61,13 @@ struct PopoverView: View {
     }
 
     private var headerSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Theme.Spacing.sm) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Image(nsImage: NSApp.applicationIconImage)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 16, height: 16)
+                        .frame(width: 20, height: 20)
                     Text(Brand.name)
                         .font(.headline)
                 }
@@ -102,12 +91,12 @@ struct PopoverView: View {
             .help(l10n.popoverClose)
             .accessibilityLabel(l10n.popoverClose)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.md)
     }
 
-    /// Compact Lemon-style overview: one label/value line over a thin bar —
-    /// deliberately small so the app list stays the protagonist.
+    /// Compact Lemon-style overview: one label/value line over a slightly
+    /// thicker bar for better readability at a glance.
     private var memorySection: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 6) {
@@ -124,18 +113,27 @@ struct PopoverView: View {
                 Text(percentText)
                     .font(.callout.monospacedDigit())
                     .fontWeight(.semibold)
-                    .foregroundStyle(systemMemory.usedFraction > 0.85 ? Color.orange : Color.primary)
+                    .foregroundStyle(systemMemory.usedFraction > 0.85 ? Theme.Color.warning : Color.primary)
             }
-            ProgressView(value: systemMemory.usedFraction)
-                .progressViewStyle(.linear)
-                .controlSize(.small)
-                .tint(systemMemory.usedFraction > 0.85 ? Color.orange : Color.accentColor)
+            // Slightly taller bar (4 pt) for better visual weight.
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(.quaternary)
+                        .frame(height: 4)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(systemMemory.usedFraction > 0.85
+                              ? Theme.Color.warning : Theme.Color.brand)
+                        .frame(width: geo.size.width * systemMemory.usedFraction, height: 4)
+                }
+            }
+            .frame(height: 4)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, Theme.Spacing.sm)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.sm)
     }
 
     private var percentText: String {
@@ -143,7 +141,7 @@ struct PopoverView: View {
     }
 
     private var searchSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Theme.Spacing.sm) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
             TextField(l10n.searchPlaceholder, text: $searchText)
@@ -159,11 +157,11 @@ struct PopoverView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, Theme.Spacing.sm)
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.sm)
     }
 
     private var iconListSection: some View {
@@ -205,64 +203,66 @@ struct PopoverView: View {
             .fontWeight(.semibold)
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, Theme.Spacing.lg)
             .padding(.vertical, 5)
             .background(.quaternary.opacity(0.25))
     }
 
+    /// Redesigned footer: primary action ("Open Main Window") stands alone on
+    /// its row; secondary actions (Settings gear, Quit) are smaller and grouped
+    /// below it so the visual hierarchy matches the action priority.
     private var footerSection: some View {
-        HStack(spacing: 12) {
-            // Settings, left: opens the main window on its Settings tab
-            // (AppDelegate summons the window, ContentView switches tabs).
-            Button {
-                NotificationCenter.default.post(name: .openSettingsTab, object: nil)
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .help(l10n.settingsDots)
-            .accessibilityLabel(l10n.settingsDots)
-            .frame(width: 60, alignment: .leading)
-
-            Spacer(minLength: 0)
-
-            // Primary action, centered like Lemon's "Open Lemon": the main
-            // window is closable with no other re-entry point, so the popover
-            // — the surface users reach first — carries it.
+        VStack(spacing: 0) {
+            // Primary action row — centered, full-width feel
             Button {
                 openWindow(id: "main")
             } label: {
                 Label(l10n.openMainWindow, systemImage: "macwindow")
-                    .font(.callout)
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .controlSize(.small)
+            .controlSize(.regular)
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.top, Theme.Spacing.sm)
+            .padding(.bottom, Theme.Spacing.xs)
 
-            Spacer(minLength: 0)
+            // Secondary action row — gear left, quit right
+            HStack {
+                Button {
+                    NotificationCenter.default.post(name: .openSettingsTab, object: nil)
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help(l10n.settingsDots)
+                .accessibilityLabel(l10n.settingsDots)
 
-            // Quit, right: this is an LSUIElement background agent with no
-            // Dock icon — without this button there is no discoverable way
-            // to exit the app.
-            Button {
-                NSApp.terminate(nil)
-            } label: {
-                Text(l10n.quit)
-                    .font(.callout)
+                Spacer()
+
+                Button {
+                    NSApp.terminate(nil)
+                } label: {
+                    // Danger-tinted so the destructive action never reads as
+                    // a neutral footer link.
+                    Text(l10n.quit)
+                        .font(.callout)
+                        .foregroundStyle(Theme.Color.warning)
+                }
+                .buttonStyle(.plain)
+                .help(l10n.quitAppTitle)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .frame(width: 60, alignment: .trailing)
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.bottom, Theme.Spacing.sm)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
     }
+
     private var occlusionBanner: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: Theme.Spacing.sm) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.Color.warning)
             Text(occlusionBody)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -274,16 +274,28 @@ struct PopoverView: View {
                 Image(systemName: "xmark")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
-                    .padding(4)
+                    .padding(Theme.Spacing.xs)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help(l10n.popoverClose)
             .accessibilityLabel(l10n.popoverClose)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(.orange.opacity(0.08))
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.sm)
+        // Stronger contrast: 0.15 opacity + 1 pt stroke for visible warning
+        .background(
+            RoundedRectangle(cornerRadius: 0)
+                .fill(Theme.Color.warning.opacity(0.15))
+                .overlay(
+                    VStack {
+                        Spacer()
+                        Rectangle()
+                            .fill(Theme.Color.warning.opacity(0.4))
+                            .frame(height: 1)
+                    }
+                )
+        )
     }
 
     private var occlusionBody: String {
@@ -300,46 +312,60 @@ private struct IconRow: View {
     let item: MenuBarMonitor.MenuBarItem
     let l10n: L10nTable
 
+    /// Hover state gates the action buttons: at rest only name + memory are
+    /// shown, keeping the row clean and reducing accidental Quit taps.
+    @State private var isHovered = false
+    /// Pending quit confirmation (popover style).
+    @State private var showQuitConfirm = false
+
     var body: some View {
         HStack(spacing: 10) {
-            AppIconView(icon: item.icon, size: 26)
+            // Shared data-only row; hover-gated actions ride behind it so
+            // the sidebar and the popover render identical row anatomy.
+            AppRowContent(item: item, iconSize: 26, nameFont: .system(.body, weight: .medium))
 
-            Text(item.processName)
-                .font(.system(.body, weight: .medium))
-                .lineLimit(1)
-                .foregroundStyle(.primary)
-
-            Spacer()
-
-            if let footprint = item.memoryFootprint {
-                Text(Format.memory(footprint))
-                    .font(.callout.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-
-            // Visible, labeled mini buttons: icon-only hover controls were
-            // unreadable at a glance. Dead actions are hidden entirely — see
-            // canOpen/canQuit.
-            if menuBarMonitor.canOpen(item) {
-                Button(l10n.open) {
-                    menuBarMonitor.activateApp(item)
+            // Action buttons appear only on hover to keep the list uncluttered.
+            // The Quit button is guarded by a confirmationDialog so a mis-hover
+            // tap never terminates an app silently.
+            if isHovered {
+                if menuBarMonitor.canOpen(item) {
+                    Button(l10n.open) {
+                        menuBarMonitor.activateApp(item)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.mini)
-            }
 
 #if !MAC_APP_STORE
-            if menuBarMonitor.canQuit(item) {
-                Button(l10n.quit) {
-                    menuBarMonitor.quitApp(item)
+                if menuBarMonitor.canQuit(item) {
+                    Button(l10n.quit) {
+                        showQuitConfirm = true
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                    .foregroundStyle(Theme.Color.warning)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    .confirmationDialog(
+                        String(format: l10n.quitConfirmTitle, item.processName),
+                        isPresented: $showQuitConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button(l10n.quit, role: .destructive) {
+                            menuBarMonitor.quitApp(item)
+                        }
+                        Button(l10n.cancel, role: .cancel) {}
+                    } message: {
+                        Text(l10n.quitConfirmMessage)
+                    }
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.mini)
-            }
 #endif
+            }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, Theme.Spacing.lg)
         .padding(.vertical, 7)
         .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+        .animation(.easeInOut(duration: 0.15), value: isHovered)
     }
 }
