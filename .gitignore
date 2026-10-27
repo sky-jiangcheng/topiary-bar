@@ -18,10 +18,12 @@ AuthKey_*.p8
 .uploads/
 .trae-html-share-packages/
 
-# Icon design artifacts: the SVGs and scripts under design/ are the sources of
-# truth; the rendered PNG/ICNS output is copied into the asset catalog when needed.
-design/leaf-icon/png-output/
-design/leaf-icon/iconset.iconset/
-design/leaf-icon/render_icons
-design/leaf-icon/*.icns
-design/leaf-icon/preview-*.png
+# App icon source of truth: tools/generate_app_icon.py renders the slider-glass
+# artwork into two committed, CI-pinned sets —
+#   Assets.xcassets/AppIcon.appiconset  full-bleed, for actool -> Assets.car (macOS 26+)
+#   Resources/AppIcon.iconset           masked,    for iconutil -> AppIcon.icns (macOS 14/15)
+# The design process — candidate masters, review sheets and the v1->v4.1 decision
+# log — is tracked under design/; read design/README.md before touching any icon.
+# The deprecated v1.17 "leaf" drafts were purged in e5f4b2d — do not reintroduce
+# them; stray icon artifacts are intentionally NOT ignored so they show up in git
+# status and get cleaned instead of lurking.
