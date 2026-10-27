@@ -74,6 +74,10 @@ cat >"$INFO_PLIST" <<PLIST
   <string>0.1.0</string>
   <key>CFBundleVersion</key>
   <string>1</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
+  <key>CFBundleIconName</key>
+  <string>AppIcon</string>
   <key>LSMinimumSystemVersion</key>
   <string>$MIN_SYSTEM_VERSION</string>
   <key>LSUIElement</key>
@@ -85,6 +89,21 @@ cat >"$INFO_PLIST" <<PLIST
 PLIST
 
 cp "$ROOT_DIR/Sources/topiary-bar/Resources/PrivacyInfo.xcprivacy" "$APP_RESOURCES/PrivacyInfo.xcprivacy"
+
+# Icons. Until now the dev bundle shipped no icon at all (no CFBundleIconFile,
+# no .icns, no actool), so "look at the icon on a real machine" had no path
+# through the daily build — every icon review had to go through release.sh.
+# Same two shapes as release.sh: full-bleed catalog -> Assets.car for macOS 26+,
+# masked iconset -> AppIcon.icns for macOS 14/15.
+xcrun actool \
+  --output-format human-readable-text --notices --warnings \
+  --app-icon AppIcon \
+  --compile "$APP_RESOURCES" \
+  --platform macosx --minimum-deployment-target "$MIN_SYSTEM_VERSION" --target-device mac \
+  --output-partial-info-plist "$ROOT_DIR/.build/assetcatalog_generated_info.plist" \
+  "$ROOT_DIR/Sources/topiary-bar/Resources/Assets.xcassets" >/dev/null
+iconutil -c icns "$ROOT_DIR/Sources/topiary-bar/Resources/AppIcon.iconset" \
+  -o "$APP_RESOURCES/AppIcon.icns"
 
 /usr/bin/codesign --force --sign - --entitlements "$ENTITLEMENTS" "$APP_BUNDLE" >/dev/null
 open_app() {

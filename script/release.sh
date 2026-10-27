@@ -78,7 +78,6 @@ APP_MACOS="$APP_CONTENTS/MacOS"
 APP_RESOURCES="$APP_CONTENTS/Resources"
 PKG_PATH="$DIST_DIR/$PRODUCT.pkg"
 ENTITLEMENTS="$ROOT_DIR/Sources/topiary-bar/Resources/$ENTITLEMENTS_NAME"
-APPCONSET="$ROOT_DIR/Sources/topiary-bar/Resources/Assets.xcassets/AppIcon.appiconset"
 
 ARCH_FLAGS=()
 for a in $ARCHS; do ARCH_FLAGS+=(--arch "$a"); done
@@ -123,6 +122,8 @@ cat > "$APP_CONTENTS/Info.plist" <<PLIST
   <string>$BUILD_NUMBER</string>
   <key>CFBundleIconFile</key>
   <string>AppIcon</string>
+  <key>CFBundleIconName</key>
+  <string>AppIcon</string>
   <key>LSMinimumSystemVersion</key>
   <string>$MIN_SYSTEM_VERSION</string>
   <key>LSUIElement</key>
@@ -135,12 +136,28 @@ cat > "$APP_CONTENTS/Info.plist" <<PLIST
 </plist>
 PLIST
 
-echo "==> Generating AppIcon.icns"
-ICONSET="$DIST_DIR/AppIcon.iconset"
-rm -rf "$ICONSET"
-cp -R "$APPCONSET" "$ICONSET"
-iconutil -c icns "$ICONSET" -o "$APP_RESOURCES/AppIcon.icns"
-rm -rf "$ICONSET"
+echo "==> Compiling the asset catalog (macOS 26+ path)"
+# Two shapes, one source of truth (tools/generate_app_icon.py):
+#   Assets.xcassets/AppIcon.appiconset  full-bleed -> Assets.car, read through
+#       CFBundleIconName on macOS 26+, where the system applies the icon shape
+#       itself. Feeding it pre-rounded artwork gets it double-masked and shrunk.
+#   Resources/AppIcon.iconset           masked     -> AppIcon.icns, read through
+#       CFBundleIconFile on macOS 14/15, which do not mask .icns at all.
+# Both sets are committed and pinned by `--verify-assets`, so this script needs
+# no Python: actool and iconutil only.
+xcrun actool \
+  --output-format human-readable-text --notices --warnings \
+  --app-icon AppIcon \
+  --compile "$APP_RESOURCES" \
+  --platform macosx --minimum-deployment-target "$MIN_SYSTEM_VERSION" --target-device mac \
+  --output-partial-info-plist "$DIST_DIR/assetcatalog_generated_info.plist" \
+  "$ROOT_DIR/Sources/topiary-bar/Resources/Assets.xcassets"
+
+echo "==> Generating the pre-Tahoe AppIcon.icns"
+# actool also writes its own AppIcon.icns, built from the full-bleed catalog —
+# square corners on macOS 14/15. Overwrite it with the masked set.
+iconutil -c icns "$ROOT_DIR/Sources/topiary-bar/Resources/AppIcon.iconset" \
+  -o "$APP_RESOURCES/AppIcon.icns"
 
 # Privacy manifest: App Store Connect rejects submissions without it, and the
 # reason codes it declares (UserDefaults) must match the shipped binary.
