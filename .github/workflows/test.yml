@@ -39,6 +39,18 @@ jobs:
           tail -60 /tmp/swift-test.log
           echo "::endgroup::"
 
+      # Two brand contracts, both cheap, both silent if unenforced:
+      #   * the brand green lives in the generator, Theme.swift and site.css;
+      #   * the committed AppIcon PNGs must be reproducible from the generator
+      #     (the v2 rewrite made code the source of truth — a hand-patched PNG
+      #     breaks that premise and only shows up when someone regenerates).
+      # The generator imports Pillow at module load, hence the install.
+      - name: Check brand colour and icon assets are in sync
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 tools/generate_app_icon.py --check-brand
+          python3 tools/generate_app_icon.py --verify-assets
+
       # The MAS channel compiles out Quit / Force Quit behind -D MAC_APP_STORE.
       # Without this job that branch only gets exercised when a tag is pushed,
       # so rot would surface at release time instead of in CI.
