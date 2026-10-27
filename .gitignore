@@ -1,6 +1,10 @@
 .build/
 build/
 dist/
+# Created by the CI icon/brand check step (and by running those commands
+# locally — the runner's Python is PEP 668 externally-managed, so a venv is the
+# only way to get Pillow).
+.venv-icon/
 .DS_Store
 *.xcuserstate
 xcuserdata/

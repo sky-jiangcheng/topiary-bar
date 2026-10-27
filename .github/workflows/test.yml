@@ -44,12 +44,16 @@ jobs:
       #   * the committed AppIcon PNGs must be reproducible from the generator
       #     (the v2 rewrite made code the source of truth — a hand-patched PNG
       #     breaks that premise and only shows up when someone regenerates).
-      # The generator imports Pillow at module load, hence the install.
+      # The generator imports Pillow at module load. The runner's Python is
+      # PEP 668 externally-managed, so `pip install` is refused outright —
+      # a throwaway venv is the only thing that works without touching the
+      # image's interpreter.
       - name: Check brand colour and icon assets are in sync
         run: |
-          python3 -m pip install --quiet pillow
-          python3 tools/generate_app_icon.py --check-brand
-          python3 tools/generate_app_icon.py --verify-assets
+          python3 -m venv .venv-icon
+          .venv-icon/bin/pip install --quiet --disable-pip-version-check pillow
+          .venv-icon/bin/python tools/generate_app_icon.py --check-brand
+          .venv-icon/bin/python tools/generate_app_icon.py --verify-assets
 
       # The MAS channel compiles out Quit / Force Quit behind -D MAC_APP_STORE.
       # Without this job that branch only gets exercised when a tag is pushed,
