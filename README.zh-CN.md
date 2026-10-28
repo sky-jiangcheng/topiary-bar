@@ -1,184 +1,143 @@
 # Topiary: macOS 菜单栏管理器
 
-看清、唤起、退出、常驻你 Mac 上运行着的每一个菜单栏应用。**不请求任何权限、无任何统计上报、数据不出设备** —— 同时提供公证的 Developer ID 版与 Mac App Store 版。
+<p align="center">
+  <img src="docs/assets/icon-256.png" alt="Topiary 应用图标" width="128" height="128" />
+</p>
 
-> 🌐 [English](README.md) · **简体中文**
+<p align="center">
+  <strong>彻底掌控你的 macOS 菜单栏。</strong><br>
+  看清、唤起、退出、常驻 Mac 上运行着的每一个菜单栏应用与后台常驻进程。
+</p>
 
-> **官网** → [sky-jiangcheng.github.io/topiary-bar](https://sky-jiangcheng.github.io/topiary-bar/)
+<p align="center">
+  <a href="https://sky-jiangcheng.github.io/topiary-bar/"><strong>官方网站</strong></a> ·
+  <a href="https://github.com/sky-jiangcheng/topiary-bar/releases/latest"><strong>下载 DMG</strong></a> ·
+  <a href="#-快速开始"><strong>快速开始</strong></a> ·
+  <a href="README.md"><strong>English</strong></a>
+</p>
 
-[![Release](https://img.shields.io/github/v/release/sky-jiangcheng/topiary-bar?label=release&color=blue)](https://github.com/sky-jiangcheng/topiary-bar/releases)
-[![Test](https://github.com/sky-jiangcheng/topiary-bar/actions/workflows/test.yml/badge.svg)](https://github.com/sky-jiangcheng/topiary-bar/actions/workflows/test.yml)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Swift](https://img.shields.io/badge/Swift-6.0-orange?logo=swift&logoColor=white)](https://swift.org)
-[![macOS](https://img.shields.io/badge/macOS-14%2B-black?logo=apple&logoColor=white)](https://www.apple.com/macos/)
-
----
-
-## 目录
-
-- [核心功能](#核心功能)
-- [App 类型](#app-类型)
-- [安装](#安装)
-- [从源码构建](#从源码构建)
-- [发布流水线（CI/CD）](#发布流水线cicd)
-- [已知限制](#已知限制)
-- [隐私](#隐私)
-- [技术栈](#技术栈)
-- [项目结构](#项目结构)
-- [文档索引](#文档索引)
-- [版本历史](#版本历史)
-- [许可证](#许可证)
+<p align="center">
+  <a href="https://github.com/sky-jiangcheng/topiary-bar/releases"><img src="https://img.shields.io/github/v/release/sky-jiangcheng/topiary-bar?label=release&color=2E7D52" alt="Release"></a>
+  <a href="https://github.com/sky-jiangcheng/topiary-bar/actions/workflows/test.yml"><img src="https://github.com/sky-jiangcheng/topiary-bar/actions/workflows/test.yml/badge.svg" alt="Test Status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6.0-orange?logo=swift&logoColor=white" alt="Swift 6.0"></a>
+  <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14%2B-black?logo=apple&logoColor=white" alt="macOS 14+"></a>
+  <a href="https://sky-jiangcheng.github.io/topiary-bar/privacy/"><img src="https://img.shields.io/badge/隐私-100%25%20本地-success" alt="Privacy"></a>
+</p>
 
 ---
 
-## 核心功能
+## 💡 为什么选择 Topiary？
 
-### 📌 状态栏常驻
+现代 macOS 菜单栏极易陷入拥挤与失控：后台同步工具、辅助插件常常被屏幕刘海吞没；由于没有标准交互窗口，你很难一览它们占用了多少内存，更无法便捷地退出或唤醒。
 
-| 功能 | 说明 |
-|------|------|
-| **常驻菜单栏** | 勾选的应用图标直接入住 macOS 菜单栏 —— 每个应用一个常驻图标，始终可见，无需弹出任何窗口。左键唤起应用，右键菜单可打开 / 取消常驻 / 退出 |
-| **主窗口一键常驻** | 选中应用后在详情页打开「常驻菜单栏」开关，列表中已常驻的应用带图钉标识——不再需要浮动管理面板 |
-| **持久化** | 常驻勾选及顺序重启后仍生效（按分发渠道隔离存于 `UserDefaults`） |
+**Topiary 为此量身打造：**
+- 🛡️ **0 权限索取，0 数据上传**：无需辅助功能权限，无埋点无网络请求，所有逻辑 100% 本地运行。
+- 📌 **独立常驻图钉**：勾选关键应用，直接在系统菜单栏生成独立常驻项，左键唤醒、右键管理。
+- 🛟 **刘海遮挡自愈**：当系统图标被 MacBook 刘海遮挡时自动感应并弹窗提醒，后台代理永不失联。
+- ⚡ **原生轻量**：基于 Swift 6 + SwiftUI / AppKit 打造，内存与性能开销极低。
 
-### 🚦 应用管理
+---
 
-| 功能 | 说明 |
-|------|------|
-| **App 类型自动检测** | 基于 `activationPolicy` 区分 Status Bar（accessory）与 Dock（regular）应用 |
-| **一键操作** | 打开、常驻、退出——退化为优雅 `terminate()`，3 秒未退出自动升级 `forceTerminate()`（MAS 沙盒版编译期剔除退出功能） |
-| **accessory 唤起** | macOS 禁止 `NSRunningApplication.activate()` 前台化 accessory 应用；本应用改用 `NSWorkspace.openApplication(at:configuration:)`（`activates = true`）重新唤起 |
-| **实时监控** | 按 1/2/5 秒间隔刷新运行中的应用列表 |
-| **搜索过滤** | 主窗口与弹窗均可按名称或 Bundle ID 搜索，并可按类型筛选 |
-| **刘海自愈** | macOS 静默吞掉刘海下的图标时自动弹出管理窗口，后台代理不会失联 |
+## ✨ 特性一览
 
-### 🎨 界面
+### 📌 菜单栏独立常驻
+* **无缝图钉化**：将你常用的菜单栏应用固定在系统顶栏，即使原应用没有便捷入口，也能一键呼出前台。
+* **常驻状态持久化**：图标顺序与勾选状态跨开机和应用重启始终生效。
 
-| 功能 | 说明 |
-|------|------|
-| **主窗口** | 双标签一窗口——「应用」与「设置」。应用页：侧栏（搜索 + 类型筛选 + 分组应用列表，小节头带数量）+ 详情区（未选中显示品牌概览与紧凑统计，选中显示结构化应用详情与常驻开关） |
-| **菜单栏弹窗** | 按类型分组的应用列表 + 每应用内存 + 系统内存概览卡片；明确关闭按钮；底栏为设置 / 打开主窗口 / 退出 |
-| **全局快捷键** | ⌃⌥M 随时唤起主窗口，可自定义组合或禁用（Carbon 注册，无需辅助功能权限） |
-| **外观主题** | 跟随系统 / 浅色 / 深色，全局即时生效 |
-| **菜单栏图标** | 圆点 / 网格 / 箭头 / 方块 / 圆环 / 透明 |
-| **多语言** | 简体中文 / English / 日本語 / Deutsch / Español，可跟随系统或手动切换 |
+### 🚦 智能应用管理
+* **自动识别分类**：智能检测并区分纯状态栏常驻应用（`activationPolicy == .accessory`）与普通 Dock 应用。
+* **Accessory 可靠唤起**：针对系统通常拒绝直接 `activate()` 的 accessory 插件，通过 `openApplication(at:configuration:)` 实现精准唤醒。
+* **安全退出与强杀保护**：支持优雅平滑退出，并在异常未响应时升级为强制终止（开发者公证版本支持）。
+* **毫秒级极速检索**：主窗口与快捷浮窗均支持按名称、Bundle ID 实时过滤定位。
 
-## App 类型
+### 🎨 贴近原生的 macOS 质感
+* **双模式界面**：轻量级顶栏 Popover 瞬时查阅 + 完整独立主窗口沉浸式管理。
+* **直观内存监控**：一目了然的内存水饺条和单进程本地内存统计。
+* **全局快捷键**：默认 <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>M</kbd> 随时唤起，无需移手操作鼠标。
+* **丰富定制**：支持系统深浅外观、6 种风格菜单栏图标、内置中/英/日/德/西 5 国原生本地化语言。
 
-| 类型 | 说明 | 激活方式 |
-|------|------|----------|
-| Status Bar | 仅有状态栏图标，无 Dock 图标 | `openApplication(at:configuration:)`（`activates = true`） |
-| Dock | 有 Dock 图标 | `activate` |
+---
 
-## 安装
+## 🚀 快速开始
 
-1. 从 [GitHub Releases](https://github.com/sky-jiangcheng/topiary-bar/releases/latest) 下载 `Topiary-<version>.dmg`
-2. 打开 DMG，把 `Topiary.app` 拖到 Applications
-3. 首次打开若出现 Gatekeeper 提示：系统设置 → 隐私与安全性 → 仍要打开
+### 安装使用
 
-官网版（Developer ID 公证 DMG）含退出 / 强制退出；Mac App Store 版受沙盒限制，这两项在编译期移除。两版 Bundle ID 不同，可同时安装，设置互不共享。
+#### 方式一：直接下载（推荐）
+1. 从 [GitHub Releases](https://github.com/sky-jiangcheng/topiary-bar/releases/latest) 下载最新的 `Topiary-<version>.dmg`。
+2. 双击打开并将 **Topiary.app** 拖入 **Applications** 应用程序文件夹。
+3. 启动应用。（*经 Apple Developer ID 官方签名公证，包含完整退出与唤起功能*）。
 
-## 从源码构建
+#### 方式二：Mac App Store
+也可前往 Mac App Store 搜索下载（根据苹果应用商店沙盒安全机制，该版本去除了直接进程终止接口）。
 
-```bash
-./script/build_and_run.sh   # 构建 + 签名 + 启动 dist/Topiary.app
-swift build                 # 仅构建
-./script/build_and_run.sh run
-```
+---
 
-额外模式：`--debug`（lldb）/ `--logs`（日志流）/ `--verify`（启动自检）。
+## 🛠️ 从源码编译
 
-构建环境要求：
-
-- Swift 6.0+，macOS 14+ SDK
-- **需要完整 Xcode**：`xcode-select -p` 必须指向 `Xcode.app`，并已执行 `sudo xcodebuild -license accept`。SwiftUI 宏插件随 Xcode 提供；仅装 Command Line Tools 会报 `plugin for module 'SwiftUIMacros' not found`，且 Swift 6.4 起默认 `swiftbuild` 构建系统在 CLT-only 环境会直接以 `Unknown error parsing property list` 失败
-- 未能切换 Xcode 时的临时绕过：
+### 环境准备
+* macOS 14.0 或更高版本
+* Xcode 16.0+（Swift 6.0 工具链）
 
 ```bash
-swift build --build-system native \
-  -Xswiftc -plugin-path \
-  -Xswiftc /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins
+# 克隆仓库
+git clone https://github.com/sky-jiangcheng/topiary-bar.git
+cd topiary-bar
+
+# 本地编译、签名并直接运行
+./script/build_and_run.sh
+
+# 或者仅使用 Swift PM 编译
+swift build
 ```
 
-- `swift test` 需要完整 Xcode 的 `XCTest` 与 runner；CI（`test.yml`）在切换到 Xcode 后执行
+---
 
-## 发布流水线（CI/CD）
+## 🔐 隐私与安全承诺
 
-推送 `v*` 标签会同时触发两条流水线：
+Topiary 坚持以隐私保护为核心底线：
+* **无联网权限**：未配置任何网络通信权限，代码绝不发起任何外部请求。
+* **无遥测上报**：绝不搜集任何使用习惯、统计指标或硬件标识。
+* **公开原生 API**：所有信息均通过公开的系统接口获取，无需开启辅助功能（Accessibility）或完全磁盘访问权限。
+* 内置符合苹果规范的隐私清单文件（`PrivacyInfo.xcprivacy`）。
 
-| 渠道 | Workflow | Bundle ID | 沙盒 | 退出功能 | 产物 |
-|------|----------|-----------|------|-------------------|------|
-| Mac App Store | `release.yml` | `com.jiangcheng.MacStatusApp` | 开（MAS 强制） | 编译期移除 | `.pkg` → iTMSTransporter 上传 |
-| 官网自分发 | `notarize.yml` | `com.jiangcheng.EasyBar` | 关（Hardened Runtime） | 完整可用 | `.dmg` → 公证 + 装订 → 挂到 GitHub Release |
+欢迎查阅完整的[隐私政策](https://sky-jiangcheng.github.io/topiary-bar/privacy/)。
 
-单元测试由 `test.yml` 在每次 push/PR 运行（macOS runner + 完整 Xcode，`swift test`）。
+---
 
-两条流水线都走 `script/release.sh`：编译 SPM 产物再组装 `.app`；MAS 渠道再用 `productbuild` 打成 `.pkg`。
+## 🤝 参与贡献与社区传播
 
-> MAS 的 `.pkg` 必须用 **3rd Party Mac Developer Installer** 证书签名；`release.yml` 会导入 Apple WWDR G3 中间证书。所需 Secrets 位于 Repo → Settings → Secrets and variables → Actions（证书 `.p12` + 密码、描述文件、App Store Connect API key/issuer）；可选变量 `BUNDLE_ID` / `BUNDLE_ID_DIRECT` 覆盖 Bundle ID。切勿提交 `.p12` / `.cer` / `.provisionprofile` / `.p8` 文件。
+我们非常欢迎社区以各种形式参与：
+- 🌟 如果这个项目对你有帮助，欢迎在 GitHub 上点一个 **Star** 让更多人看到！
+- 🐛 遇到 Bug 或有好的 Idea？欢迎提交 [Issue](https://github.com/sky-jiangcheng/topiary-bar/issues) 或发起 [Pull Request](https://github.com/sky-jiangcheng/topiary-bar/pulls)。
+- 📣 欢迎在社交平台（X / 即刻 / 掘金 / V2EX / Reddit）分享你使用 Topiary 的体验。
 
-> 两条发布流水线都绑定到 `release` environment，签名 secrets 需经required reviewers 放行。
+---
 
-> App Store 上传优先使用随 Xcode 提供的 `xcrun iTMSTransporter`；runner 镜像缺失时回退到已弃用的 `altool`。
+## 📄 开源许可证与商用授权
 
-发布新版本：
+本项目采用宽松友好的 **[MIT 许可证](LICENSE)** 开源。
 
-```bash
-git tag v1.20.1 && git push origin v1.20.1
+```text
+Copyright (c) 2026 sky-jiangcheng
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software...
 ```
 
-## 已知限制
+### 许可证核心解读：
+- ✅ **完全免费**：无论是个人学习、个人日常使用还是商业机构内部使用，均完全免费。
+- ✅ **允许二次开发与商用分发**：你可以自由 Fork、重构、打包或将其整合到你的私有/开源产品中。
+- ℹ️ **版权与免责声明**：在二次分发时只需保留原作者的版权声明与许可正文。
+- 🛡️ **无担保免责**：软件按“原样”提供，作者不承担使用造成的连带保证责任。
 
-- Status Bar（accessory）应用无法通过 `NSRunningApplication.activate()` 前台化 —— 属 macOS 安全限制。本应用通过 `NSWorkspace.openApplication`（`activates = true`）重新唤起；激活时序与已弃用的 `launchApplication(withBundleIdentifier:)` 存在差异，个别 accessory 应用（如 Macs Fan Control）本就无法被其他应用唤起
-- App 类型基于 `activationPolicy`，无法读取真实的状态栏图标归属
-- 菜单栏图标的初始位置由系统控制——新状态项总是落在最左侧（紧贴刘海）。开启「登录时启动」让 Topiary 抢先占位，或 **⌘-拖动一次**到想要的位置（系统会跨启动记住）；应用自身也会检测图标被遮挡并自动弹出窗口
-- 应用不会隐藏真实系统菜单栏图标（AX 隐藏方案已于 v1.6.0 移除）；需要该能力请搭配 Hidden Bar / Ice / Bartender 等专用工具——检测到它们运行时会自动抑制遮挡提醒
-- 暗色 App 图标变体（`Assets.xcassets/AppIcon.appiconset/dark/`）只在 Xcode 资产目录（`Assets.car`）流程下生效；`script/release.sh` 用 `iconutil` 生成仅含浅色图标的 `.icns`
-- MAS 沙盒拦截 `NSRunningApplication.terminate()` 且用户无对应授权开关，故 MAS 版用 `-D MAC_APP_STORE` 编译期剔除退出功能
+完整许可条款详见 [`LICENSE`](LICENSE) 文件。
 
-## 隐私
+---
 
-不请求任何权限。应用通过公共 API 列出运行中的应用，全部在本地处理 —— **无统计、无网络访问、零数据收集**。详见[隐私政策](https://sky-jiangcheng.github.io/topiary-bar/privacy/)。
-
-`Sources/topiary-bar/Resources/PrivacyInfo.xcprivacy` 是随包发布的隐私清单：无追踪、无收集数据类型，仅一条 required-reason 声明（`NSPrivacyAccessedAPICategoryUserDefaults` / `CA92.1`）覆盖应用自身设置。`script/release.sh` 会将其拷入 bundle 并在签名前校验。
-
-## 技术栈
-
-- **语言**：Swift 6.0
-- **框架**：SwiftUI + AppKit
-- **架构**：`@Observable`（Observation framework）
-- **构建**：Swift Package Manager（无 `.xcodeproj`，发布脚本组装 `.app`）
-- **后台代理**：以 `LSUIElement` 启动（程序坞不闪现）；程序坞图标跟随主面板——打开时显示、关闭时自动隐藏（可在设置永久关闭），无论何时应用都在菜单栏常驻
-- **登录时启动**：登录后自动启动 Topiary，抢占菜单栏右侧的稳定位置（后启动的应用图标只能向左排，越晚越容易挤进刘海）
-
-## 项目结构
-
-```
-topiary-bar/
-├── Package.swift
-├── Sources/topiary-bar/
-│   ├── App/                    # 入口（AppDelegate）+ 状态栏调度
-│   ├── Managers/               # 监控、常驻栏、内存/可见性监控、设置、本地化
-│   ├── Views/                  # 主窗口（应用 + 设置双标签）/ 弹窗 / 主题组件
-│   └── Resources/              # entitlements、Assets.xcassets、PrivacyInfo.xcprivacy
-├── Tests/topiary-bar-tests/     # 单元测试（swift test，纯逻辑）
-├── script/
-│   ├── build_and_run.sh        # 本地：构建 + 签名 + 运行
-│   └── release.sh              # 发布：mas / devid 渠道
-├── tools/                      # App 图标与截图生成脚本
-└── docs/                       # GitHub Pages（中英双语）
-```
-
-## 文档索引
-
-- [docs/AppStoreChecklist.md](docs/AppStoreChecklist.md) — Mac App Store 提交清单
-- [CHANGELOG.md](CHANGELOG.md) — 版本历史
-- [官网](https://sky-jiangcheng.github.io/topiary-bar/) · [技术支持](https://sky-jiangcheng.github.io/topiary-bar/support/) · [隐私政策](https://sky-jiangcheng.github.io/topiary-bar/privacy/)
-
-## 版本历史
-
-见 [CHANGELOG.md](CHANGELOG.md)；各版本产物见 [GitHub Releases](https://github.com/sky-jiangcheng/topiary-bar/releases)。
-
-## 许可证
-
-[MIT](LICENSE)
+<p align="center">
+  用心打造每一个像素 · <a href="https://sky-jiangcheng.github.io/topiary-bar/">访问官方网站</a>
+</p>

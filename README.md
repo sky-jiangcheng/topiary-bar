@@ -1,184 +1,148 @@
 # Topiary: macOS Menu Bar Manager
 
-See, launch, quit, and pin every menu bar app running on your Mac. **No permissions requested, no analytics, nothing leaves your device** — distributed as a notarized Developer ID build and on the Mac App Store.
+<p align="center">
+  <img src="docs/assets/icon-256.png" alt="Topiary App Icon" width="128" height="128" />
+</p>
 
-> 🌐 **English** · [简体中文](README.zh-CN.md)
+<p align="center">
+  <strong>Take full control of your macOS menu bar.</strong><br>
+  See, launch, quit, and pin every menu bar app running on your Mac.
+</p>
 
-> **Official site** → [sky-jiangcheng.github.io/topiary-bar](https://sky-jiangcheng.github.io/topiary-bar/)
+<p align="center">
+  <a href="https://sky-jiangcheng.github.io/topiary-bar/"><strong>Official Website</strong></a> ·
+  <a href="https://github.com/sky-jiangcheng/topiary-bar/releases/latest"><strong>Download DMG</strong></a> ·
+  <a href="#quick-start"><strong>Quick Start</strong></a> ·
+  <a href="README.zh-CN.md"><strong>简体中文</strong></a>
+</p>
 
-[![Release](https://img.shields.io/github/v/release/sky-jiangcheng/topiary-bar?label=release&color=blue)](https://github.com/sky-jiangcheng/topiary-bar/releases)
-[![Test](https://github.com/sky-jiangcheng/topiary-bar/actions/workflows/test.yml/badge.svg)](https://github.com/sky-jiangcheng/topiary-bar/actions/workflows/test.yml)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Swift](https://img.shields.io/badge/Swift-6.0-orange?logo=swift&logoColor=white)](https://swift.org)
-[![macOS](https://img.shields.io/badge/macOS-14%2B-black?logo=apple&logoColor=white)](https://www.apple.com/macos/)
-
----
-
-## Table of Contents
-
-- [Core Features](#core-features)
-- [App Types](#app-types)
-- [Install](#install)
-- [Build from Source](#build-from-source)
-- [Release Pipeline (CI/CD)](#release-pipeline-cicd)
-- [Known Limitations](#known-limitations)
-- [Privacy](#privacy)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Documentation Index](#documentation-index)
-- [Changelog](#changelog)
-- [License](#license)
+<p align="center">
+  <a href="https://github.com/sky-jiangcheng/topiary-bar/releases"><img src="https://img.shields.io/github/v/release/sky-jiangcheng/topiary-bar?label=release&color=2E7D52" alt="Release"></a>
+  <a href="https://github.com/sky-jiangcheng/topiary-bar/actions/workflows/test.yml"><img src="https://github.com/sky-jiangcheng/topiary-bar/actions/workflows/test.yml/badge.svg" alt="Test Status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6.0-orange?logo=swift&logoColor=white" alt="Swift 6.0"></a>
+  <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14%2B-black?logo=apple&logoColor=white" alt="macOS 14+"></a>
+  <a href="https://sky-jiangcheng.github.io/topiary-bar/privacy/"><img src="https://img.shields.io/badge/Privacy-100%25%20Local-success" alt="Privacy"></a>
+</p>
 
 ---
 
-## Core Features
+## 💡 Why Topiary?
+
+Modern macOS status bars get overcrowded quickly. Background helper tools, sync daemons, and menu bar accessories hide behind notches, consume memory, and offer no standard way to inspect or quit them.
+
+**Topiary** solves this cleanly:
+- 🛡️ **Zero Tracking, Zero Permissions**: No Accessibility permissions required, no telemetry, no network calls. 100% of data stays on your device.
+- 📌 **Resident Menu Bar Pinning**: Pin your critical apps directly to the system menu bar so they are always visible and actionable with one click.
+- 🛟 **Notch Self-Healing**: Automatically alerts you when macOS swallows icons behind the camera notch so background agents never get lost.
+- ⚡ **Lightweight & Native**: Built with Swift 6 and pure SwiftUI / AppKit with an instant memory footprint overview.
+
+---
+
+## ✨ Features at a Glance
 
 ### 📌 Menu Bar Residency
+* **Pin to Menu Bar**: Pinned apps live directly in the menu bar as resident status items. Left-click to bring to front; right-click to open, unpin, or terminate.
+* **Persistent Order**: Resident order survives reboots and app launches seamlessly.
 
-| Feature | Description |
-|---------|-------------|
-| **Pin to menu bar** | Pinned app icons live directly in the macOS menu bar — one resident status item per app, always visible, no window or panel needed. Left-click activates the app; right-click offers open / unpin / quit |
-| **Pin from the main window** | Select any app and flip its "Pin to Menu Bar" switch in the detail pane; pinned rows carry a pin mark in the list. No floating management panel needed |
-| **Persistence** | Pins and their order survive relaunch (stored per distribution channel in `UserDefaults`) |
+### 🚦 Smart App Management
+* **Auto Classification**: Automatically distinguishes between pure Status Bar accessories (`activationPolicy == .accessory`) and standard Dock applications.
+* **Accessory Wake-Up**: Reliably foregrounds accessory-only apps using `openApplication(at:configuration:)` where macOS normally rejects `activate()`.
+* **Graceful Termination**: Terminate unresponsive background apps gracefully, escalating to force kill only if needed (notarized Developer ID build).
+* **Instant Search & Filter**: Rapidly filter apps by name, bundle identifier, or app type across both the popover and main window.
 
-### 🚦 App Management
+### 🎨 Clean macOS Design
+* **Dual Interface**: Fast-access Popover for quick glance and stats + Full Main Window for management and settings.
+* **Live Memory Monitor**: Real-time memory bar and per-process memory footprints.
+* **Global Hotkey**: Press <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>M</kbd> anywhere to summon the manager without reaching for the mouse.
+* **Native Customization**: Built-in light/dark appearance support, customizable status bar glyphs, and 5 native languages (English, 简体中文, 日本語, Deutsch, Español).
 
-| Feature | Description |
-|---------|-------------|
-| **Auto detection** | Classifies running apps as Status Bar (accessory) vs. Dock (regular) via `activationPolicy` |
-| **One-click actions** | Open, pin, and quit — quit is a graceful `terminate()` that escalates to `forceTerminate()` if the app is still alive after 3 s (Quit is compiled out of the sandboxed Mac App Store build) |
-| **Accessory wake-up** | macOS refuses to foreground accessory apps via `NSRunningApplication.activate()`; Topiary re-launches them with `NSWorkspace.openApplication(at:configuration:)` (`activates = true`) |
-| **Live monitoring** | Running-app list refreshes on a 1/2/5 s interval |
-| **Search & filter** | By name or bundle ID, narrowed by app type, in both the main window and the popover |
-| **Notch self-healing** | When macOS silently swallows an icon behind the notch, the manager window is summoned automatically so the background agent stays reachable |
+---
 
-### 🎨 Interface
+## 🚀 Quick Start
 
-| Feature | Description |
-|---------|-------------|
-| **Main window** | Two tabs — Apps and Settings — in one window. Apps: sidebar (search + type filter + grouped app list with per-section counts) and a detail pane (overview with compact stats when nothing is selected, structured app details with a pin toggle when an app is) |
-| **Menu bar popover** | Type-grouped app list with search and per-app memory; system memory overview card; explicit close button; settings / main window / quit in the footer |
-| **Global hotkey** | ⌃⌥M summons the main window from anywhere; rebindable and disableable (Carbon registration — no Accessibility permission) |
-| **Launch at Login** | Starts Topiary automatically at login to claim a stable spot near the right edge of the menu bar |
-| **Themes** | System / light / dark, applied instantly app-wide |
-| **Menu bar icon** | Dots / grid / chevron / square / circle / transparent |
-| **Localization** | English, 简体中文, 日本語, Deutsch, Español — follow the system or pick manually |
+### Installation
 
-## App Types
+#### Option 1: Direct Download (Recommended)
+1. Download the latest `Topiary-<version>.dmg` from [GitHub Releases](https://github.com/sky-jiangcheng/topiary-bar/releases/latest).
+2. Open the disk image and drag **Topiary.app** into your **Applications** folder.
+3. Launch Topiary. *(Notarized with Apple Developer ID; contains full termination capabilities).*
 
-| Type | Description | Activation |
-|------|-------------|------------|
-| Status Bar | Menu bar icon only, no Dock icon | `openApplication(at:configuration:)` (`activates = true`) |
-| Dock | Has a Dock icon | `activate` |
+#### Option 2: Mac App Store
+Also available on the Mac App Store (sandboxed, operates without direct process termination per App Store Review Guidelines).
 
-## Install
+---
 
-1. Download `Topiary-<version>.dmg` from [GitHub Releases](https://github.com/sky-jiangcheng/topiary-bar/releases/latest)
-2. Open the DMG and drag `Topiary.app` into Applications
-3. On first launch, if Gatekeeper asks: System Settings → Privacy & Security → Open Anyway
+## 🛠️ Build from Source
 
-The Developer ID build (notarized DMG) includes Quit. The Mac App Store build is sandboxed and ships without it. Both can be installed side by side (different bundle IDs, isolated settings).
-
-## Build from Source
+### Prerequisites
+* macOS 14.0 or newer
+* Xcode 16.0+ (Swift 6.0 toolchain)
 
 ```bash
-./script/build_and_run.sh   # build, sign (ad-hoc), and launch dist/Topiary.app
-swift build                 # build only
-./script/build_and_run.sh run
+# Clone the repository
+git clone https://github.com/sky-jiangcheng/topiary-bar.git
+cd topiary-bar
+
+# Build, sign (ad-hoc), and run locally
+./script/build_and_run.sh
+
+# Or build with Swift PM directly
+swift build
 ```
 
-Extra modes: `--debug` (lldb) / `--logs` (log stream) / `--verify` (launch self-check).
+---
 
-Requirements:
+## 🔐 Privacy & Security
 
-- Swift 6.0+, macOS 14+ SDK
-- **Full Xcode required**: `xcode-select -p` must point to `Xcode.app` (accept the license with `sudo xcodebuild -license accept`). SwiftUI macro plugins ship with Xcode; with only Command Line Tools the build fails with `plugin for module 'SwiftUIMacros' not found`, and since Swift 6.4 the default `swiftbuild` build system fails outright with `Unknown error parsing property list`
-- Workaround when Xcode selection isn't possible:
+Topiary is designed with privacy as a foundational principle:
+* **No network capabilities configured**: The app makes zero external network connections.
+* **No analytics or diagnostic telemetry**: Nothing is tracked or logged remotely.
+* **No sensitive permissions**: Works entirely using standard public macOS APIs (`NSWorkspace`, `NSRunningApplication`) without requiring Accessibility or Full Disk Access.
+* Shipped with an official Apple Privacy Manifest (`PrivacyInfo.xcprivacy`).
 
-```bash
-swift build --build-system native \
-  -Xswiftc -plugin-path \
-  -Xswiftc /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins
+Read our complete [Privacy Policy](https://sky-jiangcheng.github.io/topiary-bar/privacy/).
+
+---
+
+## 🤝 Contributing
+
+Contributions make the open-source community an inspiring place to learn, inspire, and create. Any contributions you make are **greatly appreciated**!
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'feat: add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+If you enjoy using Topiary, please consider giving it a ⭐️ on GitHub to help others discover it!
+
+---
+
+## 📄 License & Commercial Terms
+
+This project is licensed under the **MIT License**.
+
+```text
+Copyright (c) 2026 sky-jiangcheng
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software...
 ```
 
-- `swift test` needs full Xcode's `XCTest` and runner; CI (`test.yml`) runs it after selecting Xcode
+### What does this mean?
+- ✅ **Free for Personal & Commercial Use**: You can run, study, and integrate this software in proprietary or open-source projects.
+- ✅ **Modification & Distribution**: You can modify, fork, and distribute copies under the same permissive terms.
+- ℹ️ **Notice Requirement**: Retain the original copyright notice and permission block in distributions.
+- 🛡️ **Warranty**: The software is provided "as is", without warranty of any kind.
 
-## Release Pipeline (CI/CD)
+See the full text in the [`LICENSE`](LICENSE) file.
 
-Pushing a `v*` tag triggers two pipelines at once:
+---
 
-| Channel | Workflow | Bundle ID | Sandbox | Quit | Artifact |
-|---------|----------|-----------|---------|-------------------|----------|
-| Mac App Store | `release.yml` | `com.jiangcheng.MacStatusApp` | On (MAS enforced) | Compiled out | `.pkg` → uploaded via iTMSTransporter |
-| Developer ID | `notarize.yml` | `com.jiangcheng.EasyBar` | Off (Hardened Runtime) | Fully available | `.dmg` → notarized + stapled → attached to the GitHub Release |
-
-Unit tests run on every push/PR via `test.yml` (macOS runner + full Xcode, `swift test`).
-
-Both pipelines drive `script/release.sh`: compile the SPM product and assemble the `.app`; the MAS channel additionally wraps it into a `.pkg` with `productbuild`.
-
-> The MAS `.pkg` must be signed with a **3rd Party Mac Developer Installer** certificate. `release.yml` also imports the Apple WWDR G3 intermediate certificate. Required secrets live in Repo → Settings → Secrets and variables → Actions (cert `.p12` + passwords, provisioning profile, App Store Connect API key/issuer); optional `BUNDLE_ID` / `BUNDLE_ID_DIRECT` variables override the bundle IDs. Never commit `.p12` / `.cer` / `.provisionprofile` / `.p8` files.
-
-> Both release jobs are pinned to the `release` environment so the signing secrets sit behind required reviewers.
-
-> The App Store upload prefers `xcrun iTMSTransporter` (ships with Xcode) and falls back to the deprecated `altool` when a runner image lacks it.
-
-To cut a release:
-
-```bash
-git tag v1.20.1 && git push origin v1.20.1
-```
-
-## Known Limitations
-
-- Status Bar (accessory) apps cannot be foregrounded with `NSRunningApplication.activate()` — a macOS security restriction. Topiary re-launches them via `NSWorkspace.openApplication` (`activates = true`); activation timing differs slightly from the deprecated `launchApplication(withBundleIdentifier:)`, and a few accessory apps (e.g. Macs Fan Control) can't be raised by other apps at all
-- App typing is based on `activationPolicy`, so the real owner of a menu bar icon cannot be read
-- The menu bar icon's initial position is system-controlled — fresh status items land leftmost, next to the notch. **⌘-drag it once** to where you want it; the position is remembered across launches. The app also detects when the icon is occluded and summons its window automatically
-- The app does not hide real system menu bar icons (the AX-based hiding was removed in v1.6.0). Pair it with a dedicated hider utility (Hidden Bar, Ice, Bartender) if you want that — occlusion warnings are suppressed automatically while one runs
-- Dark app icon variants (`Assets.xcassets/AppIcon.appiconset/dark/`) only apply via the Xcode asset-catalog (`Assets.car`) flow; `script/release.sh` generates a light-only `.icns` via `iconutil`
-- Under MAS sandbox, `NSRunningApplication.terminate()` is blocked with no user-facing toggle, so the MAS build strips Quit at compile time via `-D MAC_APP_STORE`
-
-## Privacy
-
-No permissions requested. The app lists running applications via public APIs and processes everything locally — **no analytics, no network access, no data collection**. See the [Privacy Policy](https://sky-jiangcheng.github.io/topiary-bar/privacy/).
-
-`Sources/topiary-bar/Resources/PrivacyInfo.xcprivacy` is the shipped privacy manifest: no tracking, no collected data types, and a single required-reason entry (`NSPrivacyAccessedAPICategoryUserDefaults` / `CA92.1`) covering the app's own settings. `script/release.sh` copies it into the bundle and lints it before signing.
-
-## Tech Stack
-
-- **Language**: Swift 6.0
-- **Frameworks**: SwiftUI + AppKit
-- **Architecture**: `@Observable` (Observation framework)
-- **Build**: Swift Package Manager (no `.xcodeproj`; release scripts assemble the `.app`)
-- **Background agent**: launches as `LSUIElement` (no Dock flash); the Dock icon follows the main window — shown while it's open, hidden when it closes (toggle in Settings). The app stays alive in the menu bar either way
-
-## Project Structure
-
-```
-topiary-bar/
-├── Package.swift
-├── Sources/topiary-bar/
-│   ├── App/                    # Entry point (AppDelegate) + status bar controller
-│   ├── Managers/               # Monitoring, resident bar, memory/visibility monitors, settings, localization
-│   ├── Views/                  # Main window (apps + settings tabs) / popover / theme components
-│   └── Resources/              # entitlements, Assets.xcassets, PrivacyInfo.xcprivacy
-├── Tests/topiary-bar-tests/     # Unit tests (swift test, logic only)
-├── script/
-│   ├── build_and_run.sh        # Local: build + sign + run
-│   └── release.sh              # Release: mas / devid channels
-├── tools/                      # App icon & screenshot generators
-└── docs/                       # GitHub Pages (EN / zh-CN)
-```
-
-## Documentation Index
-
-- [docs/AppStoreChecklist.md](docs/AppStoreChecklist.md) — Mac App Store submission checklist (Chinese)
-- [CHANGELOG.md](CHANGELOG.md) — version history
-- [Official site](https://sky-jiangcheng.github.io/topiary-bar/) · [Support](https://sky-jiangcheng.github.io/topiary-bar/support/) · [Privacy Policy](https://sky-jiangcheng.github.io/topiary-bar/privacy/)
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md); releases and artifacts are on [GitHub Releases](https://github.com/sky-jiangcheng/topiary-bar/releases).
-
-## License
-
-[MIT](LICENSE)
+<p align="center">
+  Crafted with ❤️ for the macOS community · <a href="https://sky-jiangcheng.github.io/topiary-bar/">Visit Website</a>
+</p>
