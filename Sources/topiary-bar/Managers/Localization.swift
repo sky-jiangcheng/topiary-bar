@@ -123,9 +123,12 @@ struct L10nTable {
     var hotKeyConflict: String
     // Overview — resident apps
     var residentAppsTitle: String
-    // Quit confirmation (popover row)
+    // Quit confirmation (popover row — quitting a tracked app)
     var quitConfirmTitle: String
     var quitConfirmMessage: String
+    // Quit confirmation (footer — quitting Topiary itself)
+    var quitTopiaryConfirmTitle: String
+    var quitTopiaryConfirmMessage: String
 }
 
 enum L10n {
@@ -189,7 +192,9 @@ enum L10n {
         hotKeyConflict: "This shortcut is already taken — please choose another.",
         residentAppsTitle: "Resident Apps",
         quitConfirmTitle: "Quit “%@”?",
-        quitConfirmMessage: "This will terminate the app immediately."
+        quitConfirmMessage: "This will terminate the app immediately.",
+        quitTopiaryConfirmTitle: "Quit Topiary?",
+        quitTopiaryConfirmMessage: "Topiary will stop managing your menu bar apps."
     )
 
     static let zhHans = L10nTable(
@@ -252,7 +257,9 @@ enum L10n {
         hotKeyConflict: "该快捷键已被其他应用占用，请更换一个。",
         residentAppsTitle: "常驻应用",
         quitConfirmTitle: "退出「%@」？",
-        quitConfirmMessage: "该应用将被立即终止。"
+        quitConfirmMessage: "该应用将被立即终止。",
+        quitTopiaryConfirmTitle: "退出 Topiary？",
+        quitTopiaryConfirmMessage: "Topiary 将停止管理你的菜单栏应用。"
     )
 
     static let ja = L10nTable(
@@ -315,7 +322,9 @@ enum L10n {
         hotKeyConflict: "このショートカットは既に使用されています。別のものを設定してください。",
         residentAppsTitle: "常駐アプリ",
         quitConfirmTitle: "「%@」を終了しますか？",
-        quitConfirmMessage: "このアプリは直ちに終了します。"
+        quitConfirmMessage: "このアプリは直ちに終了します。",
+        quitTopiaryConfirmTitle: "Topiary を終了しますか？",
+        quitTopiaryConfirmMessage: "Topiary はメニューバーアプリの管理を停止します。"
     )
 
     static let de = L10nTable(
@@ -378,7 +387,9 @@ enum L10n {
         hotKeyConflict: "Dieser Kurzbefehl ist bereits belegt — bitte einen anderen wählen.",
         residentAppsTitle: "Angepinnte Apps",
         quitConfirmTitle: "„%@“ beenden?",
-        quitConfirmMessage: "Die App wird sofort beendet."
+        quitConfirmMessage: "Die App wird sofort beendet.",
+        quitTopiaryConfirmTitle: "Topiary beenden?",
+        quitTopiaryConfirmMessage: "Topiary hört auf, deine Menüleisten-Apps zu verwalten."
     )
 
     static let es = L10nTable(
@@ -441,7 +452,9 @@ enum L10n {
         hotKeyConflict: "Este atajo ya está en uso — elige otro.",
         residentAppsTitle: "Apps fijadas",
         quitConfirmTitle: "¿Salir de «%@»?",
-        quitConfirmMessage: "La app se cerrará de inmediato."
+        quitConfirmMessage: "La app se cerrará de inmediato.",
+        quitTopiaryConfirmTitle: "¿Salir de Topiary?",
+        quitTopiaryConfirmMessage: "Topiary dejará de gestionar las apps de tu barra de menús."
     )
 
     // Memoized: Locale.preferredLanguages is stable within a launch session,

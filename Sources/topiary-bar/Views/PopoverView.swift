@@ -10,6 +10,7 @@ struct PopoverView: View {
 
     @State private var searchText = ""
     @State private var occlusionDismissed = false
+    @State private var showQuitTopiaryConfirm = false
 
     let onDismiss: () -> Void
 
@@ -242,7 +243,7 @@ struct PopoverView: View {
                 Spacer()
 
                 Button {
-                    NSApp.terminate(nil)
+                    showQuitTopiaryConfirm = true
                 } label: {
                     // Danger-tinted so the destructive action never reads as
                     // a neutral footer link.
@@ -252,6 +253,18 @@ struct PopoverView: View {
                 }
                 .buttonStyle(.plain)
                 .help(l10n.quitAppTitle)
+                .confirmationDialog(
+                    l10n.quitTopiaryConfirmTitle,
+                    isPresented: $showQuitTopiaryConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button(l10n.quit, role: .destructive) {
+                        NSApp.terminate(nil)
+                    }
+                    Button(l10n.cancel, role: .cancel) {}
+                } message: {
+                    Text(l10n.quitTopiaryConfirmMessage)
+                }
             }
             .padding(.horizontal, Theme.Spacing.lg)
             .padding(.bottom, Theme.Spacing.sm)

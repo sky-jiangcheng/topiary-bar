@@ -127,7 +127,7 @@ struct ContentView: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, Theme.Spacing.sm)
             .padding(.vertical, 6)
             .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
 
@@ -148,8 +148,8 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, Theme.Spacing.sm)
     }
 
     private var sidebarList: some View {
@@ -229,7 +229,7 @@ private struct SidebarRow: View {
             if settings.isPinned(item.id) {
                 Image(systemName: "pin.fill")
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.Color.warning)
             }
         }
         .padding(.vertical, 6)
@@ -344,6 +344,9 @@ private struct OverviewView: View {
         .padding(Theme.Spacing.xl)
     }
 
+    // Quit confirmation state for resident-section rows (keyed by bundle ID).
+    @State private var residentQuitTarget: MenuBarMonitor.MenuBarItem? = nil
+
     /// Direct controls for resident apps: their own menu bar icons may be
     /// occluded (notch, crowding, a hider utility), so the main panel must be
     /// able to quit or unpin them without depending on those icons.
@@ -353,9 +356,9 @@ private struct OverviewView: View {
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.top, 10)
-                .padding(.bottom, 4)
+                .padding(.horizontal, Theme.Spacing.md)
+                .padding(.top, Theme.Spacing.sm)
+                .padding(.bottom, Theme.Spacing.xs)
 
             ForEach(pinnedItems) { item in
                 HStack(spacing: 8) {
@@ -370,11 +373,27 @@ private struct OverviewView: View {
 #if !MAC_APP_STORE
                     if menuBarMonitor.canQuit(item) {
                         Button(l10n.quit) {
-                            menuBarMonitor.quitApp(item)
+                            residentQuitTarget = item
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.mini)
                         .foregroundStyle(Theme.Color.warning)
+                        .confirmationDialog(
+                            String(format: l10n.quitConfirmTitle, item.processName),
+                            isPresented: Binding(
+                                get: { residentQuitTarget?.id == item.id },
+                                set: { if !$0 { residentQuitTarget = nil } }
+                            ),
+                            titleVisibility: .visible
+                        ) {
+                            Button(l10n.quit, role: .destructive) {
+                                menuBarMonitor.quitApp(item)
+                                residentQuitTarget = nil
+                            }
+                            Button(l10n.cancel, role: .cancel) { residentQuitTarget = nil }
+                        } message: {
+                            Text(l10n.quitConfirmMessage)
+                        }
                     }
 #endif
 
@@ -388,8 +407,8 @@ private struct OverviewView: View {
                     .help(l10n.removeFromPanel)
                     .accessibilityLabel(l10n.removeFromPanel)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
+                .padding(.horizontal, Theme.Spacing.md)
+                .padding(.vertical, Theme.Spacing.xs)
 
                 if item.id != pinnedItems.last?.id {
                     Divider()
@@ -473,9 +492,11 @@ private struct AppDetailView: View {
             Spacer()
             value()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, Theme.Spacing.sm)
     }
+
+    @State private var showQuitConfirm = false
 
     @ViewBuilder
     private var actions: some View {
@@ -506,14 +527,26 @@ private struct AppDetailView: View {
 #if !MAC_APP_STORE
             if menuBarMonitor.canQuit(item) {
                 Button {
-                    menuBarMonitor.quitApp(item)
+                    showQuitConfirm = true
                 } label: {
                     Label(l10n.quit, systemImage: "xmark.circle")
                 }
                 .buttonStyle(.bordered)
+                .confirmationDialog(
+                    String(format: l10n.quitConfirmTitle, item.processName),
+                    isPresented: $showQuitConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button(l10n.quit, role: .destructive) {
+                        menuBarMonitor.quitApp(item)
+                    }
+                    Button(l10n.cancel, role: .cancel) {}
+                } message: {
+                    Text(l10n.quitConfirmMessage)
+                }
             }
 #endif
         }
-        .padding(.top, 4)
+        .padding(.top, Theme.Spacing.xs)
     }
 }
