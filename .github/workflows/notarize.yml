@@ -98,11 +98,27 @@ jobs:
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
-          xcrun notarytool submit "$DMG_PATH" \
-            --key "$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8" \
-            --key-id "$API_KEY_ID" \
-            --issuer "$API_ISSUER_ID" \
-            --wait
+          # The notary service occasionally returns transient errors (e.g.
+          # notarytool exit 68). Retry before failing the whole release.
+          ok=0
+          for attempt in 1 2 3; do
+            echo "==> Notarization attempt $attempt/3"
+            rc=0
+            if xcrun notarytool submit "$DMG_PATH" \
+              --key "$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8" \
+              --key-id "$API_KEY_ID" \
+              --issuer "$API_ISSUER_ID" \
+              --wait
+            then
+              ok=1
+              break
+            else
+              rc=$?
+              echo "notarytool exited $rc on attempt $attempt" >&2
+              [ "$attempt" -lt 3 ] && sleep $((attempt * 30))
+            fi
+          done
+          [ "$ok" -eq 1 ] || { echo "notarization failed after 3 attempts" >&2; exit 1; }
           xcrun stapler staple "$DMG_PATH"
           xcrun stapler validate "$DMG_PATH"
           spctl -a -vv -t install "$DMG_PATH"
