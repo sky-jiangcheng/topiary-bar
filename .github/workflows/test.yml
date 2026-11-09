@@ -39,6 +39,15 @@ jobs:
           tail -60 /tmp/swift-test.log
           echo "::endgroup::"
 
+      # Regression guard for the iTMSTransporter -10814 fix (commit 879bb55):
+      # the MAS upload step must never execute the notice-only Xcode
+      # iTMSTransporter stub, and "uploaded" must be proven by output evidence
+      # rather than a bare exit 0. This harness drives both branches with stubs
+      # and asserts exactly that. Plain bash on purpose — bats is not on the
+      # macos-15 runner.
+      - name: Test asc-upload.sh uploader selection (-10814 guard)
+        run: bash script/asc-upload.test.sh
+
       # Two brand contracts, both cheap, both silent if unenforced:
       #   * the brand green lives in the generator, Theme.swift and site.css;
       #   * the committed AppIcon PNGs must be reproducible from the generator
