@@ -11,10 +11,26 @@ struct PopoverView: View {
     @State private var searchText = ""
     @State private var occlusionDismissed = false
     @State private var showQuitTopiaryConfirm = false
+    /// The row whose "quit" is waiting for confirmation. One target shared by
+    /// the whole list, so at most one row dialog can be up at a time.
+    @State private var pendingQuitTarget: MenuBarMonitor.MenuBarItem?
 
     let onDismiss: () -> Void
 
     private var l10n: L10nTable { settings.l10n }
+
+    /// Reads the pending target rather than a per-row flag, so the dialog is
+    /// not tied to the lifetime of the row that opened it.
+    private var quitConfirmPresented: Binding<Bool> {
+        Binding(
+            get: { pendingQuitTarget != nil },
+            set: { if !$0 { pendingQuitTarget = nil } }
+        )
+    }
+
+    private var quitConfirmTitle: String {
+        String(format: l10n.quitConfirmTitle, pendingQuitTarget?.processName ?? "")
+    }
 
     private var filteredItems: [MenuBarMonitor.MenuBarItem] {
         MenuBarMonitor.matching(menuBarMonitor.menuBarItems, query: searchText)
@@ -59,6 +75,32 @@ struct PopoverView: View {
             // occurrence warns again instead of staying silenced forever.
             if !stillOccluded { occlusionDismissed = false }
         }
+        // INVARIANT: a presentation modifier must live on a view that is never
+        // removed from the hierarchy. This dialog used to ride on the row's
+        // hover-gated Quit button, so moving the pointer toward it cleared
+        // `isHovered`, dropped that subtree and SwiftUI cancelled the dialog
+        // mid-flight (writing isPresented back to false) — the confirmation was
+        // literally impossible to click. Keep it attached to the popover root.
+        //
+        // Gated with its only trigger (the row's Quit button) and with
+        // MenuBarMonitor.quitApp, all of which disappear from the MAS channel.
+#if !MAC_APP_STORE
+        .confirmationDialog(
+            quitConfirmTitle,
+            isPresented: quitConfirmPresented,
+            titleVisibility: .visible
+        ) {
+            Button(l10n.quit, role: .destructive) {
+                if let item = pendingQuitTarget {
+                    menuBarMonitor.quitApp(item)
+                }
+                pendingQuitTarget = nil
+            }
+            Button(l10n.cancel, role: .cancel) { pendingQuitTarget = nil }
+        } message: {
+            Text(l10n.quitConfirmMessage)
+        }
+#endif
     }
 
     private var headerSection: some View {
@@ -179,7 +221,7 @@ struct PopoverView: View {
                     LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
                         if !statusbarItems.isEmpty {
                             Section {
-                                ForEach(statusbarItems) { IconRow(item: $0, l10n: l10n) }
+                                ForEach(statusbarItems) { IconRow(item: $0, l10n: l10n, onQuit: { pendingQuitTarget = $0 }) }
                             } header: {
                                 sectionHeader(l10n.statusBar, count: statusbarItems.count)
                             }
@@ -187,7 +229,7 @@ struct PopoverView: View {
 
                         if !dockItems.isEmpty {
                             Section {
-                                ForEach(dockItems) { IconRow(item: $0, l10n: l10n) }
+                                ForEach(dockItems) { IconRow(item: $0, l10n: l10n, onQuit: { pendingQuitTarget = $0 }) }
                             } header: {
                                 sectionHeader(l10n.dock, count: dockItems.count)
                             }
@@ -328,8 +370,11 @@ private struct IconRow: View {
     /// Hover state gates the action buttons: at rest only name + memory are
     /// shown, keeping the row clean and reducing accidental Quit taps.
     @State private var isHovered = false
-    /// Pending quit confirmation (popover style).
-    @State private var showQuitConfirm = false
+    /// Reports the row the user wants to quit. The confirmation itself belongs
+    /// to `PopoverView` — see the INVARIANT note there: a dialog hosted inside
+    /// this `if isHovered` branch disappears the moment the pointer leaves the
+    /// row, which is exactly on the way to the dialog.
+    let onQuit: (MenuBarMonitor.MenuBarItem) -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -338,8 +383,8 @@ private struct IconRow: View {
             AppRowContent(item: item, iconSize: 26, nameFont: .system(.body, weight: .medium))
 
             // Action buttons appear only on hover to keep the list uncluttered.
-            // The Quit button is guarded by a confirmationDialog so a mis-hover
-            // tap never terminates an app silently.
+            // Quit still asks first (the dialog lives on the popover root) so a
+            // mis-hover tap never terminates an app silently.
             if isHovered {
                 if menuBarMonitor.canOpen(item) {
                     Button(l10n.open) {
@@ -353,24 +398,12 @@ private struct IconRow: View {
 #if !MAC_APP_STORE
                 if menuBarMonitor.canQuit(item) {
                     Button(l10n.quit) {
-                        showQuitConfirm = true
+                        onQuit(item)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.mini)
                     .foregroundStyle(Theme.Color.warning)
                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                    .confirmationDialog(
-                        String(format: l10n.quitConfirmTitle, item.processName),
-                        isPresented: $showQuitConfirm,
-                        titleVisibility: .visible
-                    ) {
-                        Button(l10n.quit, role: .destructive) {
-                            menuBarMonitor.quitApp(item)
-                        }
-                        Button(l10n.cancel, role: .cancel) {}
-                    } message: {
-                        Text(l10n.quitConfirmMessage)
-                    }
                 }
 #endif
             }
