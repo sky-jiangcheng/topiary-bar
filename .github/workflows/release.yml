@@ -108,25 +108,11 @@ jobs:
         env:
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-        run: |
-          # `altool` is formally deprecated but is the only uploader verified
-          # to work on the macOS runner image this project uses (v1.26.1
-          # shipped through it). `iTMSTransporter` is the documented
-          # replacement and is tried first; if it is missing OR exits
-          # non-zero, fall back to altool rather than failing the release.
-          #
-          # Note: a non-zero iTMSTransporter exit is treated as "try altool",
-          # so a genuine auth failure surfaces as altool's error instead.
-          if xcrun --find iTMSTransporter >/dev/null 2>&1 \
-             && xcrun iTMSTransporter -m upload \
-                  -assetFile "dist/Topiary.pkg" \
-                  -apiKey "$API_KEY_ID" -apiIssuer "$API_ISSUER_ID"; then
-            echo "Uploaded via iTMSTransporter"
-          else
-            echo "iTMSTransporter unavailable or failed — falling back to altool"
-            xcrun altool --upload-app --type macos --file "dist/Topiary.pkg" \
-              --apiKey "$API_KEY_ID" --apiIssuer "$API_ISSUER_ID"
-          fi
+        # The uploader choice and — more importantly — the definition of
+        # "uploaded" live in script/asc-upload.sh, which is testable with stubs.
+        # Inlining it here is what let a notice-only stub that exits 0 masquerade
+        # as a successful upload.
+        run: bash script/asc-upload.sh "dist/Topiary.pkg"
 
       - name: Upload package artifact
         if: always()
