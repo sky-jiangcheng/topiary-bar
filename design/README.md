@@ -10,6 +10,10 @@ design/
 │   ├── source/                每一个候选的 1024 母版（含未入选者、含小尺寸简化档）
 │   ├── contact-sheet.png      候选横向对比（light/dark × 128/64/32/16）
 │   └── review-small-sizes.png 像素级评审：16/32 原尺寸 + 6× 放大 + 白/黑底剪影
+├── quit-confirmation/
+│   ├── README.md              退出确认框"点不动"的排查与决策日志（v1.28.2）
+│   ├── probes/                探针源码：窗口状态 dump / hover 门控对照 / 跨进程取证
+│   └── logs/                  各模式原始输出，含两条被否掉的误判的证据
 └── reviews/
     └── 2026-10-27-ui-critique.md   本轮 UI 重做的输入（外部评审报告，原样保留）
 ```
@@ -32,7 +36,7 @@ PNG 全是派生物；改图标改代码，然后 `--measure` / `--review` 复�
 | §2.1 遮挡横幅对比度不足 | 已做，`warning.opacity(0.15)` + 1pt `0.4` 描边 | `PopoverView.occlusionBanner` |
 | §2.1 搜索框上下 padding 叠加 | **复核后不改**（见下方"复核后不改的"） | — |
 | §2.2 行内按钮常驻、Quit 太激进 | 已做，hover 才浮现动作 | `PopoverView.IconRow` |
-| §2.2 Quit 无二次确认 | 已做，`confirmationDialog`，五语（en/zh/ja/de/es）文案齐 | `IconRow` + `Localization.quitConfirmTitle/Message` |
+| §2.2 Quit 无二次确认 | 已做，`confirmationDialog`，五语（en/zh/ja/de/es）文案齐；**其宿主在 v1.28.2 被修正**（弹窗挂在 hover 门控按钮上导致无法点击，见 [`quit-confirmation/README.md`](quit-confirmation/README.md)） | `IconRow` + `Localization.quitConfirmTitle/Message` |
 | §2.3 弹窗行与侧栏行设计语言割裂 | 已做，抽出 `AppRowContent` 共享数据层，两处各自包布局 | `Theme.swift` |
 | §2.4 StatChip 的 iOS 风 Capsule | 已做，改 macOS 方卡 | `Theme.swift.StatChip` |
 | §2.4 品牌标改左上角小徽标 | **部分**：缩到 32pt 并降权，但概览页仍是居中构图 | `ContentView.OverviewView` |
@@ -71,6 +75,16 @@ PNG 全是派生物；改图标改代码，然后 `--measure` / `--review` 复�
 first-responder 与按键拦截逻辑——`HotKeyRecorderView` 从 `HotKeyRecorder.swift:53`
 起共约 76 行，`draw()` 只占其中 25 行左右，剩下的是事件处理，改宿主控件等于把这
 些全部重验一遍。它不影响可读性或操作安全，本轮不碰。
+
+## 交互：presentation 修饰符的宿主（v1.28.2）
+
+不变量：**`confirmationDialog` / `sheet` / `alert` 这类 presentation 修饰符必须待在永不被
+条件移除的稳定祖先上。** 骑在 `if isHovered { … }` 里的按钮上时，鼠标移向弹窗的路途本身
+就会取消 hover、把宿主连同弹窗移出视图树，SwiftUI 随即撤销呈现并写回 `isPresented = false`。
+
+后果不只是"关掉了"：弹窗在视觉上存在但拿不到点击，用户会判定应用坏了。这类问题编译器、
+单测、UI 审查都看不见，只有"带着真实指针移动"的对照实验能抓到。排查过程、被否掉的两条
+误判和复现命令都在 [`quit-confirmation/README.md`](quit-confirmation/README.md)。
 
 ## 颜色预算（三处同源，一处校验）
 

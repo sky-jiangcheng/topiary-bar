@@ -1,0 +1,13 @@
+[  0.17] STYLE=gated
+[  2.27] 1 popover open, not hovered: hovered=false showConfirm=false alertWindows=0 alertVisible=0 alertIsKey=false
+[  2.27]    buttons on screen: ["<NSStatusBarWindow> \'HG\'"]
+[  2.69] SET hovered = true (pointer over the row)
+[  3.21] 2 hovered, Quit button materialised: hovered=true showConfirm=false alertWindows=0 alertVisible=0 alertIsKey=false
+[  3.21]    buttons on screen: ["<NSStatusBarWindow> \'HG\'"]
+[  3.53] PRESENT dialog while hovered
+[  4.34] 3 dialog up, still hovered: hovered=true showConfirm=true alertWindows=1 alertVisible=1 alertIsKey=true
+[  4.34]    buttons on screen: ["<NSStatusBarWindow> \'HG\'", "<_NSAlertPanel> \'Cancel\'", "<_NSAlertPanel> \'Quit\'"]
+[  4.79] SET hovered = false (pointer leaves the row on its way to the dialog)
+[  5.63] 4 AFTER hover cleared: hovered=false showConfirm=false alertWindows=0 alertVisible=0 alertIsKey=false
+[  5.63]    buttons on screen: ["<NSStatusBarWindow> \'HG\'"]
+[  6.47] VERDICT style=gated dialogSurvivedUnhover=false showConfirmStillTrue=false

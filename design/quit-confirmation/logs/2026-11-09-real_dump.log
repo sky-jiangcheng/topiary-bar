@@ -1,0 +1,7 @@
+windowdump: watching owner name containing 'Topiary' for 150s, out=~/dist/quit-dialog-probe-2026-11-09/real
+CG coordinates are top-left origin, y down. List order = front to back.
+--- frame 1 @   0.1s  windows=1 ---
+  #00 number=79 layer=0 alpha=1.00 pid=2720 bounds=760x600@(580,128) name='Topiary'
+screencapture: cannot write file to intended destination, ~/dist/quit-dialog-probe-2026-11-09/real/frame_01.png
+  screenshot -> ~/dist/quit-dialog-probe-2026-11-09/real/frame_01.png
+windowdump: done, 1 frames

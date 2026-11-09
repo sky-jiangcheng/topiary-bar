@@ -1,0 +1,49 @@
+windowdump: watching owner name containing 'Topiary' for 200s, out=~/dist/quit-dialog-probe-2026-11-09/real
+CG coordinates are top-left origin, y down. List order = front to back.
+--- frame 1 @   0.1s  windows=1 ---
+  #00 number=79 layer=0 alpha=1.00 pid=2720 bounds=760x600@(580,128) name='Topiary'
+  screenshot -> ~/dist/quit-dialog-probe-2026-11-09/real/frame_01.png
+--- frame 2 @  94.8s  windows=2 ---
+  #00 number=135 layer=25 alpha=0.94 pid=2720 bounds=364x514@(1386,24) name=''
+  #01 number=79 layer=0 alpha=1.00 pid=2720 bounds=760x600@(580,128) name='Topiary'
+  screenshot -> ~/dist/quit-dialog-probe-2026-11-09/real/frame_02.png
+--- frame 3 @  95.4s  windows=2 ---
+  #00 number=135 layer=25 alpha=1.00 pid=2720 bounds=386x546@(1375,24) name=''
+  #01 number=79 layer=0 alpha=1.00 pid=2720 bounds=760x600@(580,128) name='Topiary'
+  screenshot -> ~/dist/quit-dialog-probe-2026-11-09/real/frame_03.png
+--- frame 4 @ 121.3s  windows=3 ---
+  #00 number=758 layer=25 alpha=1.00 pid=2720 bounds=410x289@(1363,152) name=''
+  #01 number=135 layer=25 alpha=1.00 pid=2720 bounds=386x546@(1375,24) name=''
+  #02 number=79 layer=0 alpha=1.00 pid=2720 bounds=760x600@(580,128) name='Topiary'
+  screenshot -> ~/dist/quit-dialog-probe-2026-11-09/real/frame_04.png
+--- frame 5 @ 121.9s  windows=2 ---
+  #00 number=135 layer=25 alpha=1.00 pid=2720 bounds=386x546@(1375,24) name=''
+  #01 number=79 layer=0 alpha=1.00 pid=2720 bounds=760x600@(580,128) name='Topiary'
+  screenshot -> ~/dist/quit-dialog-probe-2026-11-09/real/frame_05.png
+--- frame 6 @ 123.4s  windows=3 ---
+  #00 number=763 layer=25 alpha=0.33 pid=2720 bounds=372x262@(1382,166) name=''
+  #01 number=135 layer=25 alpha=1.00 pid=2720 bounds=386x546@(1375,24) name=''
+  #02 number=79 layer=0 alpha=1.00 pid=2720 bounds=760x600@(580,128) name='Topiary'
+  screenshot -> ~/dist/quit-dialog-probe-2026-11-09/real/frame_06.png
+--- frame 7 @ 124.0s  windows=3 ---
+  #00 number=763 layer=25 alpha=1.00 pid=2720 bounds=410x289@(1363,152) name=''
+  #01 number=135 layer=25 alpha=1.00 pid=2720 bounds=386x546@(1375,24) name=''
+  #02 number=79 layer=0 alpha=1.00 pid=2720 bounds=760x600@(580,128) name='Topiary'
+  screenshot -> ~/dist/quit-dialog-probe-2026-11-09/real/frame_07.png
+--- frame 8 @ 124.6s  windows=2 ---
+  #00 number=135 layer=25 alpha=1.00 pid=2720 bounds=386x546@(1375,24) name=''
+  #01 number=79 layer=0 alpha=1.00 pid=2720 bounds=760x600@(580,128) name='Topiary'
+  screenshot -> ~/dist/quit-dialog-probe-2026-11-09/real/frame_08.png
+--- frame 9 @ 126.0s  windows=3 ---
+  #00 number=766 layer=25 alpha=1.00 pid=2720 bounds=410x289@(1363,152) name=''
+  #01 number=135 layer=25 alpha=1.00 pid=2720 bounds=386x546@(1375,24) name=''
+  #02 number=79 layer=0 alpha=1.00 pid=2720 bounds=760x600@(580,128) name='Topiary'
+  screenshot -> ~/dist/quit-dialog-probe-2026-11-09/real/frame_09.png
+--- frame 10 @ 136.0s  windows=2 ---
+  #00 number=135 layer=25 alpha=1.00 pid=2720 bounds=386x546@(1375,24) name=''
+  #01 number=79 layer=0 alpha=1.00 pid=2720 bounds=760x600@(580,128) name='Topiary'
+  screenshot -> ~/dist/quit-dialog-probe-2026-11-09/real/frame_10.png
+--- frame 11 @ 137.4s  windows=2 ---
+  #00 number=135 layer=25 alpha=0.41 pid=2720 bounds=159x224@(1489,24) name=''
+  #01 number=79 layer=0 alpha=1.00 pid=2720 bounds=760x600@(580,128) name='Topiary'
+  screenshot -> ~/dist/quit-dialog-probe-2026-11-09/real/frame_11.png

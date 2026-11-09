@@ -1,0 +1,44 @@
+[  0.16] MODE=flip LSUIElement=1 policy=1
+[  1.20] ### popoverDidShow behavior=1
+[  2.25] ===== A: before dialog =====
+[  2.25]   appActive=true policy=1 modalWindow=nil keyWindow=<_NSPopoverWindow> runloopMode=kCFRunLoopDefaultMode
+[  2.25]   popover.isShown=true behavior=1
+[  2.25]   no window class containing 'Alert'; windows with buttons: ["<NSStatusBarWindow> btns=[\"PR\"]"]
+[  2.25]   ALERT x0: 
+[  2.25]   GLASS x0: 
+[  2.26]   CGWINDOWLIST (front to back, this process):
+[  2.26]     #5 number=848 layer=25 cls=_NSPopoverWindow bounds=386x326@(806,26)
+[  2.88] --- flip: behavior -> .applicationDefined (fix A) ---
+[  2.88] --- presenting SwiftUI confirmationDialog ---
+[  3.93] ===== B: dialog up =====
+[  3.93]   appActive=true policy=1 modalWindow=nil keyWindow=<_NSAlertPanel> runloopMode=kCFRunLoopDefaultMode
+[  3.93]   popover.isShown=true behavior=0
+[  3.93]   ALERT x1: <_NSAlertPanel> #849 title='' level=25 visible=true key=true canBecomeKey=true ignoresMouse=false parent=nil childWindows=1 frame={{869, 822}, {260, 139}} btns=['Cancel', 'Quit']
+[  3.93]   GLASS x1: <_NSGlassEffectWindow> #850 title='' level=25 visible=true key=false canBecomeKey=false ignoresMouse=false parent=<_NSAlertPanel> childWindows=0 frame={{794, 747}, {410, 289}} btns=[]
+[  3.94]   CGWINDOWLIST (front to back, this process):
+[  3.94]     #5 number=850 layer=25 cls=_NSGlassEffectWindow bounds=410x289@(794,44)
+[  3.94]     #6 number=848 layer=25 cls=_NSPopoverWindow bounds=386x326@(806,26)
+[  3.94]   button 'Cancel' appkit={940, 852} topmostWindow=<_NSGlassEffectWindow>#850 topmostIsAlert=false hitTestInView=_NSGlassEffectWindowLayerHostView hitResolvesToAlert=false
+[  3.94]   button 'Quit' appkit={1058, 852} topmostWindow=<_NSGlassEffectWindow>#850 topmostIsAlert=false hitTestInView=_NSGlassEffectWindowLayerHostView hitResolvesToAlert=false
+[  3.94]   performClick on Alert's own Quit button (bypasses all event routing) -> proves wiring
+[  3.94] >>> DESTRUCTIVE ACTION FIRED
+[  4.52]   performClick result: destructiveFired=true
+[  4.77] HOVER: no visible Alert window to hover
+[  5.82] ===== D: after hover (the real trigger) =====
+[  5.83]   appActive=true policy=1 modalWindow=nil keyWindow=<_NSPopoverWindow> runloopMode=kCFRunLoopDefaultMode
+[  5.83]   popover.isShown=true behavior=0
+[  5.83]   ALERT x1: <_NSAlertPanel> #849 title='' level=0 visible=false key=false canBecomeKey=true ignoresMouse=false parent=nil childWindows=1 frame={{869, 822}, {260, 139}} btns=['Cancel', 'Quit']
+[  5.83]   GLASS x1: <_NSGlassEffectWindow> #850 title='' level=0 visible=false key=false canBecomeKey=false ignoresMouse=false parent=<_NSAlertPanel> childWindows=0 frame={{794, 747}, {410, 289}} btns=[]
+[  5.83]   CGWINDOWLIST (front to back, this process):
+[  5.83]     #5 number=848 layer=25 cls=_NSPopoverWindow bounds=386x326@(806,26)
+[  5.83] WIGGLE: no hover point
+[  7.08] ===== E: after cursor wiggle over the dialog =====
+[  7.08]   appActive=true policy=1 modalWindow=nil keyWindow=<_NSPopoverWindow> runloopMode=kCFRunLoopDefaultMode
+[  7.08]   popover.isShown=true behavior=0
+[  7.08]   ALERT x1: <_NSAlertPanel> #849 title='' level=0 visible=false key=false canBecomeKey=true ignoresMouse=false parent=nil childWindows=1 frame={{869, 822}, {260, 139}} btns=['Cancel', 'Quit']
+[  7.08]   GLASS x1: <_NSGlassEffectWindow> #850 title='' level=0 visible=false key=false canBecomeKey=false ignoresMouse=false parent=<_NSAlertPanel> childWindows=0 frame={{794, 747}, {410, 289}} btns=[]
+[  7.09]   CGWINDOWLIST (front to back, this process):
+[  7.09]     #5 number=848 layer=25 cls=_NSPopoverWindow bounds=386x326@(806,26)
+[  7.44] VERDICT2 mode=flip popoverShownAfterHover=true dialogAliveAfterHover=false dialogSurvivedHover=false closefirstMode=false
+[  8.34] VERDICT mode=flip alertWindows=1 glassWindows=1 alertIsTopmostAtButton=false hitTestResolvesToAlert=false performClickFired=true destructiveFired=true popoverShown=true
+[  8.35] ### popoverDidClose reason=NSPopoverCloseReasonStandard
