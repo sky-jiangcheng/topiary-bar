@@ -79,6 +79,18 @@ APP_RESOURCES="$APP_CONTENTS/Resources"
 PKG_PATH="$DIST_DIR/$PRODUCT.pkg"
 ENTITLEMENTS="$ROOT_DIR/Sources/topiary-bar/Resources/$ENTITLEMENTS_NAME"
 
+# The MAS bundle needs two identifier keys on top of the sandbox; the helper
+# derives them from BUNDLE_ID and the signing identity instead of keeping a
+# third copy of those values in the repo. Runs before the build so a wrong
+# team/bundle combination fails here, not after a signed upload.
+if [ "$CHANNEL" = "mas" ]; then
+  mkdir -p "$DIST_DIR"
+  MAS_ENTITLEMENTS="$DIST_DIR/mas.entitlements"
+  "$ROOT_DIR/script/mas-entitlements.sh" "$ENTITLEMENTS" "$MAS_ENTITLEMENTS" \
+    "$BUNDLE_ID" "$SIGNING_IDENTITY" "${PROVISIONING_PROFILE:-}" >/dev/null
+  ENTITLEMENTS="$MAS_ENTITLEMENTS"
+fi
+
 ARCH_FLAGS=()
 for a in $ARCHS; do ARCH_FLAGS+=(--arch "$a"); done
 
