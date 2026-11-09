@@ -22,9 +22,17 @@
 7. 隐私营养标签：**不收集任何数据**。隐私清单只申报 `NSPrivacyAccessedAPICategoryUserDefaults` / `CA92.1`（应用自身设置），与标签口径一致
 8. 重新截取 App Store 截图。`AppStoreScreenshots/` 里的文件仍是改版前的旧品牌命名（`macstatus-*`），与当前 UI 不符
 9. 上传：走 CI（`.github/workflows/release.yml`，推送 `v*` 标签）。两个发布 job 都绑定 `release` environment，需在 Repo → Settings → Environments 配置 required reviewers 与 secrets
-10. 手动上传（需完整 Xcode，优先 iTMSTransporter）：
-    `xcrun iTMSTransporter -m upload -assetFile dist/Topiary.pkg -apiKey … -apiIssuer …`
-    旧版 `xcrun altool --upload-app` 已废弃，仅作回退
+10. 手动上传统一走 `bash script/asc-upload.sh dist/Topiary.pkg`（需要 `API_KEY_ID` / `API_ISSUER_ID`）。
+    口径纠正（此前这条写的是"优先 iTMSTransporter，altool 仅作回退"，与实测不符）：
+    `xcrun --find iTMSTransporter` 命中的是 Xcode 里的**提示桩**，本机与 runner 上都不存在真正的
+    Transporter，因此它**永远不会上传任何东西**——实测 `-m upload` 打印"iTMSTransporter is now part of
+    Transporter / 去 Mac App Store 安装"并**退出 1**，同一个桩 `-version` 却**退出 0**；GitHub runner 上
+    它改抛 `-10814`（LaunchServices 找不到 Transporter）。旧写法靠"非 0 即回退 altool"（`09ce8ef`）确实
+    能发布成功，所以这里**不是**在修一个现实的静默失败，而是：① 不再每次都执行一个注定失败的桩、
+    只在 `Transporter.app` 真实存在时才用 iTMSTransporter；② 成功判据从"退出码 0"改为**上传器自己
+    的输出证据**（实测措辞 `No errors uploading` / `UPLOAD SUCCEEDED` / `Delivery UUID:`），因为桩在
+    `-version` 上已经证明"退出码"对这类二进制不可信；③ 非 0 退出不再被静默改道，认证类失败会直接
+    让 job 失败，而不是伪装成"另一个上传器报的错"。
 
 ## 构建与打包（唯一流程）
 
