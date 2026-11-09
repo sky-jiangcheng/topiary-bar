@@ -6,7 +6,7 @@
 - 通过 `NSWorkspace.shared.runningApplications` 列出运行中的应用
 - 不请求屏幕录制、输入监控、文件访问、网络访问或自动化权限
 - **不请求辅助功能（Accessibility）权限**：仅使用公共 API 列出运行中的应用
-- 包含最小 App Sandbox 授权文件 `Sources/topiary-bar/Resources/topiary-bar.entitlements`
+- 包含最小 App Sandbox 授权文件 `Sources/topiary-bar/Resources/topiary-bar.entitlements`；MAS 还需要的两个签名标识键（`com.apple.application-identifier` = `<Team ID>.<Bundle ID>`、`com.apple.developer.team-identifier`）**不写死在该文件里**，由 `script/mas-entitlements.sh` 在构建时从 `BUNDLE_ID` 与签名身份派生到 `dist/mas.entitlements`。缺这两个键会吃 altool 90886 警告、TestFlight 构建可能进不去；写成第三份字面量则会让 CI 的 `vars.BUNDLE_ID` 一改就与描述文件悄悄失配
 - 包含隐私清单 `Sources/topiary-bar/Resources/PrivacyInfo.xcprivacy`（`release.sh` 自动拷入 bundle 并 `plutil -lint` 校验）；缺失会被 App Store Connect 拒收
 - App 图标由 `tools/generate_app_icon.py` 从滑块玻璃面板源图生成（`python3 tools/generate_app_icon.py [SOURCE_IMAGE]`），产物写入 `Sources/topiary-bar/Resources/Assets.xcassets/AppIcon.appiconset`
 - 发布流程不依赖 Xcode 工程：`script/release.sh` 直接编译 SPM 产物并组装 `.app`
@@ -14,7 +14,7 @@
 ## 提交前必要步骤
 
 1. 安装完整 Xcode、同意许可并用 `xcode-select` 选择（`xcode-select -p` 必须指向 `Xcode.app`，否则 SwiftUI 宏插件缺失，构建会失败）
-2. 本地跑通一次发布构建：`CHANNEL=mas SIGNING_IDENTITY="Apple Distribution: …" bash script/release.sh`
+2. 本地跑通一次发布构建：`CHANNEL=mas SIGNING_IDENTITY="Apple Distribution: …" bash script/release.sh`。签名身份名必须带 `(TEAMID)` 后缀，否则脚本在**开始编译之前**就失败（`TEAM_ID=…` 可显式覆盖）；给了 `PROVISIONING_PROFILE` 时还会把派生出的 identifier 与描述文件交叉校验，覆盖不一致同样硬失败
 3. 在 Apple Developer 后台确认 / 创建 `com.jiangcheng.MacStatusApp` 的 App ID
 4. 创建并下载 Mac App Store 类型的 provisioning profile
 5. 确认 App Sandbox 由 `Sources/topiary-bar/Resources/topiary-bar.entitlements` 启用（MAS 渠道的 `-D MAC_APP_STORE` 会编译期移除退出功能）
@@ -33,7 +33,7 @@
 | Mac App Store | `CHANNEL=mas bash script/release.sh` | `com.jiangcheng.MacStatusApp` | 开 | `dist/Topiary.pkg` → altool |
 | 官网自分发 | `CHANNEL=devid bash script/release.sh` | `com.jiangcheng.EasyBar` | 关 | `dist/Topiary.app` → DMG → 公证 → GitHub Release Assets |
 
-必需环境变量：`SIGNING_IDENTITY`（mas：`Apple Distribution: …`；devid：`Developer ID Application: …`），其余可选变量见 `script/release.sh` 头部注释。
+必需环境变量：`SIGNING_IDENTITY`（mas：`Apple Distribution: …`；devid：`Developer ID Application: …`），其余可选变量见 `script/release.sh` 头部注释。mas 渠道另有两个可选项：`TEAM_ID`（默认从签名身份名解析 10 位 Team ID）与 `PROVISIONING_PROFILE`（描述文件路径，用于交叉校验签名标识并内嵌进 bundle）。
 
 本地开发用 `script/build_and_run.sh`，它采用 devid 渠道的 Bundle ID 与 entitlements（沙盒关闭）。
 
