@@ -93,7 +93,7 @@ cp "$ROOT_DIR/Sources/topiary-bar/Resources/PrivacyInfo.xcprivacy" "$APP_RESOURC
 # Icons. Until now the dev bundle shipped no icon at all (no CFBundleIconFile,
 # no .icns, no actool), so "look at the icon on a real machine" had no path
 # through the daily build — every icon review had to go through release.sh.
-# Same two shapes as release.sh: full-bleed catalog -> Assets.car for macOS 26+,
+# Same two shapes as release.sh: full-bleed catalog -> Assets.car for macOS 26/27+,
 # masked iconset -> AppIcon.icns for macOS 14/15.
 xcrun actool \
   --output-format human-readable-text --notices --warnings \

@@ -233,6 +233,18 @@ ACCENTS = {
             "knobA_rim": (10, 24, 16),
         },
     },
+    "v5-lumina": {
+        "light": {
+            "knobA_face": (56, 94, 72),
+            "knobA_edge": (98, 138, 114),
+            "knobA_rim": (28, 52, 40),
+        },
+        "dark": {
+            "knobA_face": (122, 172, 142),
+            "knobA_edge": (170, 208, 182),
+            "knobA_rim": (10, 24, 16),
+        },
+    },
     "v4b-plain": {
         "light": {
             "knobA_face": (56, 94, 72),
@@ -382,7 +394,13 @@ GEOMETRY = {
 }
 
 VARIANTS = {
-    # -- v4 (current round): legibility at the small end + a mark that holds
+    # -- v5 (macOS 27 round): "lumina" — evolved material depth with micro-facet
+    #    concentric reflection ring on the brand green dial, top-edge ambient prism
+    #    refraction on the frosted glass panel, and refined contrast for macOS 27.
+    "v5-lumina": {"slot_w": 0.118, "rail_w": 0.082, "knob_d": 0.155, "blur": 0.016,
+                  "depth": True, "refine": True, "prism": True, "facet": True,
+                  "small": "simplified"},
+    # -- v4 (previous round): legibility at the small end + a mark that holds
     #    its own silhouette. `refine` opts into the REFINES palette override;
     #    `small` picks the <=32 px strategy ("simplified" = own master).
     "v4a-refined": {"slot_w": 0.118, "rail_w": 0.082, "knob_d": 0.155, "blur": 0.016,
@@ -449,6 +467,8 @@ def draw_variant(variant: str, mode: str, size_class: int = 0) -> Image.Image:
     g = GEOMETRY
     d = dict(VARIANTS[variant])
     depth = d.pop("depth", False)
+    prism = d.pop("prism", False)
+    facet = d.pop("facet", False)
     if d.pop("refine", False):
         p.update(REFINES[mode])
     d.pop("small", None)  # handled by master_for, which routes the small tier
@@ -485,6 +505,16 @@ def draw_variant(variant: str, mode: str, size_class: int = 0) -> Image.Image:
     )
     sheen = sheen.filter(ImageFilter.GaussianBlur(s(0.06)))
     img.alpha_composite(sheen)
+
+    # v5 prism: subtle top-edge ambient prism refraction on frosted glass
+    if prism:
+        prism_edge = Image.new("RGBA", (W, W), (0, 0, 0, 0))
+        ImageDraw.Draw(prism_edge).rounded_rectangle(
+            (s(0.003), s(0.003), W - s(0.003), s(0.045)),
+            radius=s(RADIUS_RATIO),
+            fill=(255, 255, 255, 36 if mode == "light" else 20),
+        )
+        img.alpha_composite(prism_edge.filter(ImageFilter.GaussianBlur(s(0.010))))
 
     def capsule(cx_px: int, top_px: int, bottom_px: int, w_px: int) -> tuple:
         return (cx_px - w_px // 2, top_px, cx_px + w_px // 2, bottom_px)
@@ -583,6 +613,14 @@ def draw_variant(variant: str, mode: str, size_class: int = 0) -> Image.Image:
             fill=(*ke, 130),
         )
         knob.alpha_composite(shd.filter(ImageFilter.GaussianBlur(blur)))
+        if facet:
+            fct = Image.new("RGBA", (W, W), (0, 0, 0, 0))
+            ImageDraw.Draw(fct).ellipse(
+                (kx - kr * 0.58, ky - kr * 0.58, kx + kr * 0.58, ky + kr * 0.58),
+                outline=(255, 255, 255, 48 if mode == "light" else 32),
+                width=s(0.003),
+            )
+            knob.alpha_composite(fct.filter(ImageFilter.GaussianBlur(s(0.002))))
         kd.ellipse(
             (kx - kr, ky - kr, kx + kr, ky + kr),
             outline=(*kr_c, 255 if mode == "light" else 140),
@@ -996,7 +1034,7 @@ def check_brand() -> int:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--variant", choices=sorted(VARIANTS), default="v4a-refined")
+    ap.add_argument("--variant", choices=sorted(VARIANTS), default="v5-lumina")
     ap.add_argument("--sheet", action="store_true", help="emit design/icon/contact-sheet.png")
     ap.add_argument("--review", action="store_true",
                     help="emit design/icon/review-small-sizes.png")
@@ -1038,7 +1076,7 @@ def main() -> None:
 
     if args.review:
         # v3a stays in the strip as the "before" of the small-tier comparison.
-        review = small_review(["v3a-accent", "v4b-plain", "v4a-refined"])
+        review = small_review(["v3a-accent", "v4b-plain", "v4a-refined", "v5-lumina"])
         out = MASTERS.parent / "review-small-sizes.png"
         review.save(out)
         print(f"small-size review -> {out}")

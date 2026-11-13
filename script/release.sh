@@ -148,10 +148,10 @@ cat > "$APP_CONTENTS/Info.plist" <<PLIST
 </plist>
 PLIST
 
-echo "==> Compiling the asset catalog (macOS 26+ path)"
+echo "==> Compiling the asset catalog (macOS 26/27+ path)"
 # Two shapes, one source of truth (tools/generate_app_icon.py):
 #   Assets.xcassets/AppIcon.appiconset  full-bleed -> Assets.car, read through
-#       CFBundleIconName on macOS 26+, where the system applies the icon shape
+#       CFBundleIconName on macOS 26/27+, where the system applies the icon shape
 #       itself. Feeding it pre-rounded artwork gets it double-masked and shrunk.
 #   Resources/AppIcon.iconset           masked     -> AppIcon.icns, read through
 #       CFBundleIconFile on macOS 14/15, which do not mask .icns at all.
