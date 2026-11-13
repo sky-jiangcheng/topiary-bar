@@ -105,43 +105,44 @@ struct PopoverView: View {
 
     private var headerSection: some View {
         HStack(spacing: Theme.Spacing.sm) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Image(nsImage: NSApp.applicationIconImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 20)
+            HStack(spacing: 8) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 22, height: 22)
+                    .shadow(color: .black.opacity(0.12), radius: 1.5, x: 0, y: 0.5)
+
+                VStack(alignment: .leading, spacing: 1) {
                     Text(Brand.name)
                         .font(.headline)
+                    Text(String(format: l10n.appsCount, menuBarMonitor.menuBarItems.count))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                Text(String(format: l10n.appsCount, menuBarMonitor.menuBarItems.count))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            // Explicit close affordance — outside clicks already dismiss the
-            // transient popover, but a visible × makes the way out obvious.
+            // Explicit close affordance — circular hover button
             Button {
                 onDismiss()
             } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(HoverIconButtonStyle(size: 24))
             .help(l10n.popoverClose)
             .accessibilityLabel(l10n.popoverClose)
         }
         .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.vertical, Theme.Spacing.md)
+        .padding(.top, Theme.Spacing.md)
+        .padding(.bottom, Theme.Spacing.xs)
     }
 
     /// Compact Lemon-style overview: one label/value line over a slightly
     /// thicker bar for better readability at a glance.
     private var memorySection: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: "memorychip")
                     .font(.caption)
@@ -158,25 +159,31 @@ struct PopoverView: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(systemMemory.usedFraction > 0.85 ? Theme.Color.warning : Color.primary)
             }
-            // Slightly taller bar (4 pt) for better visual weight.
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(.quaternary)
-                        .frame(height: 4)
-                    RoundedRectangle(cornerRadius: 2)
+                    Capsule()
+                        .fill(Color.primary.opacity(0.08))
+                        .frame(height: 5)
+                    Capsule()
                         .fill(systemMemory.usedFraction > 0.85
                               ? Theme.Color.warning : Theme.Color.brand)
-                        .frame(width: geo.size.width * systemMemory.usedFraction, height: 4)
+                        .frame(width: max(5, geo.size.width * CGFloat(systemMemory.usedFraction)), height: 5)
                 }
             }
-            .frame(height: 4)
+            .frame(height: 5)
         }
         .padding(.horizontal, Theme.Spacing.md)
-        .padding(.vertical, Theme.Spacing.sm)
-        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                .fill(Color.primary.opacity(0.03))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.05), lineWidth: 1)
+        )
         .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.vertical, Theme.Spacing.sm)
+        .padding(.vertical, Theme.Spacing.xs)
     }
 
     private var percentText: String {
@@ -184,27 +191,9 @@ struct PopoverView: View {
     }
 
     private var searchSection: some View {
-        HStack(spacing: Theme.Spacing.sm) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField(l10n.searchPlaceholder, text: $searchText)
-                .textFieldStyle(.plain)
-
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, Theme.Spacing.md)
-        .padding(.vertical, Theme.Spacing.sm)
-        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
-        .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.vertical, Theme.Spacing.sm)
+        SearchBoxView(text: $searchText, placeholder: l10n.searchPlaceholder)
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.vertical, Theme.Spacing.xs)
     }
 
     private var iconListSection: some View {
@@ -218,12 +207,12 @@ struct PopoverView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    LazyVStack(spacing: 2, pinnedViews: [.sectionHeaders]) {
                         if !statusbarItems.isEmpty {
                             Section {
                                 ForEach(statusbarItems) { IconRow(item: $0, l10n: l10n, onQuit: { pendingQuitTarget = $0 }) }
                             } header: {
-                                sectionHeader(l10n.statusBar, count: statusbarItems.count)
+                                sectionHeader(l10n.statusBar, systemImage: "menubar.rectangle", count: statusbarItems.count)
                             }
                         }
 
@@ -231,54 +220,75 @@ struct PopoverView: View {
                             Section {
                                 ForEach(dockItems) { IconRow(item: $0, l10n: l10n, onQuit: { pendingQuitTarget = $0 }) }
                             } header: {
-                                sectionHeader(l10n.dock, count: dockItems.count)
+                                sectionHeader(l10n.dock, systemImage: "dock.rectangle", count: dockItems.count)
                             }
                         }
                     }
+                    .padding(.vertical, 4)
                 }
             }
         }
     }
 
-    private func sectionHeader(_ title: String, count: Int) -> some View {
-        Text("\(title) · \(count)")
-            .font(.caption)
-            .fontWeight(.semibold)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Theme.Spacing.lg)
-            .padding(.vertical, 5)
-            .background(.quaternary.opacity(0.25))
+    private func sectionHeader(_ title: String, systemImage: String, count: Int) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(title)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text("\(count)")
+                .font(.caption2.monospacedDigit())
+                .fontWeight(.medium)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 1)
+                .background(
+                    Capsule()
+                        .fill(Color.primary.opacity(0.06))
+                )
+        }
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, 6)
+        .background(Color(nsColor: .windowBackgroundColor).opacity(0.85))
     }
 
     /// Redesigned footer: primary action ("Open Main Window") stands alone on
     /// its row; secondary actions (Settings gear, Quit) are smaller and grouped
     /// below it so the visual hierarchy matches the action priority.
     private var footerSection: some View {
-        VStack(spacing: 0) {
-            // Primary action row — centered, full-width feel
+        VStack(spacing: 8) {
+            // Primary action row — full-width prominent feel
             Button {
                 openWindow(id: "main")
             } label: {
-                Label(l10n.openMainWindow, systemImage: "macwindow")
-                    .frame(maxWidth: .infinity)
+                HStack(spacing: 6) {
+                    Image(systemName: "macwindow")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(l10n.openMainWindow)
+                        .fontWeight(.medium)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.regular)
+            .buttonStyle(ModernProminentButtonStyle(fullWidth: true))
             .padding(.horizontal, Theme.Spacing.lg)
             .padding(.top, Theme.Spacing.sm)
-            .padding(.bottom, Theme.Spacing.xs)
 
             // Secondary action row — gear left, quit right
             HStack {
                 Button {
                     NotificationCenter.default.post(name: .openSettingsTab, object: nil)
                 } label: {
-                    Image(systemName: "gearshape")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 5) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 13))
+                        Text(l10n.windowTabSettings)
+                            .font(.callout)
+                    }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(SubtleSecondaryButtonStyle())
                 .help(l10n.settingsDots)
                 .accessibilityLabel(l10n.settingsDots)
 
@@ -287,13 +297,13 @@ struct PopoverView: View {
                 Button {
                     showQuitTopiaryConfirm = true
                 } label: {
-                    // Danger-tinted so the destructive action never reads as
-                    // a neutral footer link.
-                    Text(l10n.quit)
-                        .font(.callout)
-                        .foregroundStyle(Theme.Color.warning)
+                    HStack(spacing: 5) {
+                        Image(systemName: "power")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(l10n.quit)
+                    }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(SubtleDestructiveButtonStyle())
                 .help(l10n.quitAppTitle)
                 .confirmationDialog(
                     l10n.quitTopiaryConfirmTitle,
@@ -314,43 +324,37 @@ struct PopoverView: View {
     }
 
     private var occlusionBanner: some View {
-        HStack(alignment: .top, spacing: Theme.Spacing.sm) {
+        HStack(alignment: .center, spacing: Theme.Spacing.sm) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.caption)
+                .font(.callout)
                 .foregroundStyle(Theme.Color.warning)
             Text(occlusionBody)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary.opacity(0.85))
                 .multilineTextAlignment(.leading)
-            Spacer(minLength: 0)
+            Spacer(minLength: 4)
             Button {
                 occlusionDismissed = true
             } label: {
                 Image(systemName: "xmark")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(Theme.Spacing.xs)
-                    .contentShape(Rectangle())
+                    .font(.system(size: 10, weight: .bold))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(HoverIconButtonStyle(size: 20, isDestructive: true))
             .help(l10n.popoverClose)
             .accessibilityLabel(l10n.popoverClose)
         }
-        .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.vertical, Theme.Spacing.sm)
-        // Stronger contrast: 0.15 opacity + 1 pt stroke for visible warning
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 0)
-                .fill(Theme.Color.warning.opacity(0.15))
-                .overlay(
-                    VStack {
-                        Spacer()
-                        Rectangle()
-                            .fill(Theme.Color.warning.opacity(0.4))
-                            .frame(height: 1)
-                    }
-                )
+            RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                .fill(Theme.Color.warning.opacity(0.12))
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                .strokeBorder(Theme.Color.warning.opacity(0.3), lineWidth: 1)
+        )
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.xs)
     }
 
     private var occlusionBody: String {
@@ -386,30 +390,38 @@ private struct IconRow: View {
             // Quit still asks first (the dialog lives on the popover root) so a
             // mis-hover tap never terminates an app silently.
             if isHovered {
-                if menuBarMonitor.canOpen(item) {
-                    Button(l10n.open) {
-                        menuBarMonitor.activateApp(item)
+                HStack(spacing: 6) {
+                    if menuBarMonitor.canOpen(item) {
+                        Button {
+                            menuBarMonitor.activateApp(item)
+                        } label: {
+                            Label(l10n.open, systemImage: "arrow.up.forward.app")
+                        }
+                        .buttonStyle(MicroActionButtonStyle(variant: .accent))
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
-                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                }
 
 #if !MAC_APP_STORE
-                if menuBarMonitor.canQuit(item) {
-                    Button(l10n.quit) {
-                        onQuit(item)
+                    if menuBarMonitor.canQuit(item) {
+                        Button {
+                            onQuit(item)
+                        } label: {
+                            Label(l10n.quit, systemImage: "xmark")
+                        }
+                        .buttonStyle(MicroActionButtonStyle(variant: .warning))
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
-                    .foregroundStyle(Theme.Color.warning)
-                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                }
 #endif
+                }
             }
         }
-        .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.vertical, 7)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isHovered ? Color.primary.opacity(0.06) : Color.clear)
+        )
+        .padding(.horizontal, Theme.Spacing.md)
         .contentShape(Rectangle())
         .onHover { isHovered = $0 }
         .animation(.easeInOut(duration: 0.15), value: isHovered)

@@ -112,24 +112,7 @@ struct ContentView: View {
 
     private var sidebarHeader: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField(l10n.searchPlaceholder, text: $searchText)
-                    .textFieldStyle(.plain)
-                if !searchText.isEmpty {
-                    Button {
-                        searchText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, Theme.Spacing.sm)
-            .padding(.vertical, 6)
-            .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
+            SearchBoxView(text: $searchText, placeholder: l10n.searchPlaceholder)
 
             Picker(l10n.all, selection: $selectedFilter) {
                 Text(l10n.all).tag(AppFilter.all)
@@ -301,9 +284,9 @@ private struct OverviewView: View {
             // the stat block instead of floating under the resident list.
             VStack(spacing: Theme.Spacing.sm) {
                 HStack(spacing: Theme.Spacing.md) {
-                    StatChip(systemImage: "list.bullet", title: l10n.total, value: total)
-                    StatChip(systemImage: "menubar.rectangle", title: l10n.statusBar, value: statusbarCount)
-                    StatChip(systemImage: "dock.rectangle", title: l10n.dock, value: dockCount)
+                    StatChip(systemImage: "list.bullet", title: l10n.total, value: total, tintColor: Theme.Color.brand)
+                    StatChip(systemImage: "menubar.rectangle", title: l10n.statusBar, value: statusbarCount, tintColor: Color.accentColor)
+                    StatChip(systemImage: "dock.rectangle", title: l10n.dock, value: dockCount, tintColor: Color.indigo)
                 }
 
                 Text(l10n.selectAppPrompt)
@@ -372,12 +355,12 @@ private struct OverviewView: View {
 
 #if !MAC_APP_STORE
                     if menuBarMonitor.canQuit(item) {
-                        Button(l10n.quit) {
+                        Button {
                             residentQuitTarget = item
+                        } label: {
+                            Label(l10n.quit, systemImage: "xmark")
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.mini)
-                        .foregroundStyle(Theme.Color.warning)
+                        .buttonStyle(MicroActionButtonStyle(variant: .warning))
                         .confirmationDialog(
                             String(format: l10n.quitConfirmTitle, item.processName),
                             isPresented: Binding(
@@ -400,23 +383,31 @@ private struct OverviewView: View {
                     Button {
                         settings.togglePin(item.id)
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HoverIconButtonStyle(size: 22, isDestructive: true))
                     .help(l10n.removeFromPanel)
                     .accessibilityLabel(l10n.removeFromPanel)
                 }
                 .padding(.horizontal, Theme.Spacing.md)
-                .padding(.vertical, Theme.Spacing.xs)
+                .padding(.vertical, 6)
 
                 if item.id != pinnedItems.last?.id {
                     Divider()
+                        .padding(.horizontal, Theme.Spacing.md)
                 }
             }
         }
         .frame(maxWidth: 360)
-        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                .fill(Color.primary.opacity(0.03))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        )
     }
 }
 
@@ -467,7 +458,14 @@ private struct AppDetailView: View {
                             .font(.callout.monospacedDigit())
                     }
                 }
-                .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                        .fill(Color.primary.opacity(0.03))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+                )
 
                 actions
 
@@ -500,14 +498,14 @@ private struct AppDetailView: View {
 
     @ViewBuilder
     private var actions: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             if menuBarMonitor.canOpen(item) {
                 Button {
                     menuBarMonitor.activateApp(item)
                 } label: {
                     Label(l10n.open, systemImage: "arrow.up.forward.app")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(ModernProminentButtonStyle())
             }
 
             // Residency only makes sense for menu-bar (accessory) apps: Dock
@@ -521,7 +519,7 @@ private struct AppDetailView: View {
                         systemImage: settings.isPinned(item.id) ? "pin.slash.fill" : "pin.fill"
                     )
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(ModernSecondaryButtonStyle(isHighlighted: settings.isPinned(item.id)))
             }
 
 #if !MAC_APP_STORE
@@ -531,7 +529,7 @@ private struct AppDetailView: View {
                 } label: {
                     Label(l10n.quit, systemImage: "xmark.circle")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(ModernWarningButtonStyle())
                 .confirmationDialog(
                     String(format: l10n.quitConfirmTitle, item.processName),
                     isPresented: $showQuitConfirm,

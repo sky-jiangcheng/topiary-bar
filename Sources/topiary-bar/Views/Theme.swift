@@ -89,6 +89,7 @@ struct AppIconView: View {
             }
         }
         .frame(width: size, height: size)
+        .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 0.5)
     }
 }
 
@@ -131,8 +132,15 @@ struct AppRowContent<Accessory: View>: View {
 
             if let footprint = item.memoryFootprint {
                 Text(Format.memory(footprint))
-                    .font(.callout.monospacedDigit())
+                    .font(.caption.monospacedDigit())
+                    .fontWeight(.medium)
                     .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .fill(Color.primary.opacity(0.05))
+                    )
             }
         }
     }
@@ -181,13 +189,16 @@ struct StatChip: View {
     let systemImage: String
     let title: String
     let value: Int
+    var tintColor: Color = .secondary
+
+    @State private var isHovered = false
 
     var body: some View {
         VStack(spacing: Theme.Spacing.xs) {
             HStack(spacing: 5) {
                 Image(systemName: systemImage)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(tintColor)
                 Text(title)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -197,9 +208,396 @@ struct StatChip: View {
                 .fontWeight(.semibold)
                 .monospacedDigit()
         }
-        .frame(minWidth: 80)
+        .frame(minWidth: 84)
         .padding(.horizontal, Theme.Spacing.md)
         .padding(.vertical, Theme.Spacing.sm)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                .fill(isHovered ? Color.primary.opacity(0.06) : Color.primary.opacity(0.03))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                .strokeBorder(isHovered ? Color.primary.opacity(0.18) : Color.primary.opacity(0.06), lineWidth: 1)
+        )
+        .scaleEffect(isHovered ? 1.02 : 1.0)
+        .animation(.easeInOut(duration: 0.15), value: isHovered)
+        .onHover { isHovered = $0 }
+    }
+}
+
+// MARK: - Cursor & Interactive Modifiers
+
+struct PointingHandModifier: ViewModifier {
+    @State private var isHovering = false
+
+    func body(content: Content) -> some View {
+        content
+            .onHover { hovering in
+                if hovering != isHovering {
+                    isHovering = hovering
+                    if hovering {
+                        NSCursor.pointingHand.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
+            }
+            .onDisappear {
+                if isHovering {
+                    isHovering = false
+                    NSCursor.pop()
+                }
+            }
+    }
+}
+
+extension View {
+    func pointingHandCursor() -> some View {
+        modifier(PointingHandModifier())
+    }
+}
+
+// MARK: - Button Styles
+
+/// Dedicated micro action button style for row actions (Open, Quit) in lists.
+struct MicroActionButtonStyle: ButtonStyle {
+    enum Variant {
+        case standard
+        case accent
+        case warning
+    }
+
+    var variant: Variant = .standard
+
+    func makeBody(configuration: Configuration) -> some View {
+        MicroActionButtonBody(configuration: configuration, variant: variant)
+    }
+
+    private struct MicroActionButtonBody: View {
+        let configuration: Configuration
+        let variant: Variant
+        @State private var isHovered = false
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(foregroundColor)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(backgroundColor)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(borderColor, lineWidth: 0.8)
+                )
+                .scaleEffect(configuration.isPressed ? 0.94 : (isHovered ? 1.02 : 1.0))
+                .animation(.easeInOut(duration: 0.12), value: isHovered)
+                .animation(.easeInOut(duration: 0.08), value: configuration.isPressed)
+                .onHover { isHovered = $0 }
+                .pointingHandCursor()
+        }
+
+        private var foregroundColor: Color {
+            switch variant {
+            case .standard:
+                return isHovered ? .primary : .secondary
+            case .accent:
+                return isHovered ? Color.accentColor : Color.accentColor.opacity(0.9)
+            case .warning:
+                return isHovered ? Theme.Color.warning : Theme.Color.warning.opacity(0.9)
+            }
+        }
+
+        private var backgroundColor: Color {
+            switch variant {
+            case .standard:
+                return isHovered ? Color.primary.opacity(0.12) : Color.primary.opacity(0.06)
+            case .accent:
+                return isHovered ? Color.accentColor.opacity(0.22) : Color.accentColor.opacity(0.12)
+            case .warning:
+                return isHovered ? Theme.Color.warning.opacity(0.22) : Theme.Color.warning.opacity(0.12)
+            }
+        }
+
+        private var borderColor: Color {
+            switch variant {
+            case .standard:
+                return isHovered ? Color.primary.opacity(0.18) : Color.primary.opacity(0.08)
+            case .accent:
+                return isHovered ? Color.accentColor.opacity(0.35) : Color.accentColor.opacity(0.2)
+            case .warning:
+                return isHovered ? Theme.Color.warning.opacity(0.35) : Theme.Color.warning.opacity(0.2)
+            }
+        }
+    }
+}
+
+/// Circular or rounded icon button style with soft translucent hover background.
+struct HoverIconButtonStyle: ButtonStyle {
+    var size: CGFloat = 26
+    var isDestructive: Bool = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        HoverIconButtonBody(configuration: configuration, size: size, isDestructive: isDestructive)
+    }
+
+    private struct HoverIconButtonBody: View {
+        let configuration: Configuration
+        let size: CGFloat
+        let isDestructive: Bool
+        @State private var isHovered = false
+
+        var body: some View {
+            configuration.label
+                .foregroundStyle(foregroundColor)
+                .frame(width: size, height: size)
+                .background(
+                    Circle()
+                        .fill(backgroundColor)
+                )
+                .scaleEffect(configuration.isPressed ? 0.9 : (isHovered ? 1.06 : 1.0))
+                .animation(.easeInOut(duration: 0.12), value: isHovered)
+                .animation(.easeInOut(duration: 0.08), value: configuration.isPressed)
+                .onHover { isHovered = $0 }
+                .pointingHandCursor()
+        }
+
+        private var foregroundColor: Color {
+            if isDestructive {
+                return isHovered ? Theme.Color.warning : Theme.Color.warning.opacity(0.8)
+            }
+            return isHovered ? .primary : .secondary
+        }
+
+        private var backgroundColor: Color {
+            if isDestructive {
+                return isHovered ? Theme.Color.warning.opacity(0.16) : Color.clear
+            }
+            return isHovered ? Color.primary.opacity(0.08) : Color.clear
+        }
+    }
+}
+
+/// Prominent primary action button with smooth hover illumination and drop shadow.
+struct ModernProminentButtonStyle: ButtonStyle {
+    var fullWidth: Bool = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        ModernProminentButtonBody(configuration: configuration, fullWidth: fullWidth)
+    }
+
+    private struct ModernProminentButtonBody: View {
+        let configuration: Configuration
+        let fullWidth: Bool
+        @State private var isHovered = false
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(maxWidth: fullWidth ? .infinity : nil)
+                .padding(.horizontal, fullWidth ? 16 : 16)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                        .fill(Color.accentColor.opacity(isHovered ? 0.92 : 1.0))
+                        .shadow(color: Color.accentColor.opacity(isHovered ? 0.35 : 0.15), radius: isHovered ? 4 : 2, x: 0, y: 1.5)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.8)
+                )
+                .scaleEffect(configuration.isPressed ? 0.97 : (isHovered ? 1.01 : 1.0))
+                .animation(.easeInOut(duration: 0.12), value: isHovered)
+                .animation(.easeInOut(duration: 0.08), value: configuration.isPressed)
+                .onHover { isHovered = $0 }
+                .pointingHandCursor()
+        }
+    }
+}
+
+/// Bordered secondary button with hover highlight and active bounce.
+struct ModernSecondaryButtonStyle: ButtonStyle {
+    var isHighlighted: Bool = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        ModernSecondaryButtonBody(configuration: configuration, isHighlighted: isHighlighted)
+    }
+
+    private struct ModernSecondaryButtonBody: View {
+        let configuration: Configuration
+        let isHighlighted: Bool
+        @State private var isHovered = false
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(isHighlighted ? Theme.Color.warning : .primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                        .fill(backgroundColor)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                        .strokeBorder(borderColor, lineWidth: 0.8)
+                )
+                .scaleEffect(configuration.isPressed ? 0.97 : (isHovered ? 1.01 : 1.0))
+                .animation(.easeInOut(duration: 0.12), value: isHovered)
+                .animation(.easeInOut(duration: 0.08), value: configuration.isPressed)
+                .onHover { isHovered = $0 }
+                .pointingHandCursor()
+        }
+
+        private var backgroundColor: Color {
+            if isHighlighted {
+                return isHovered ? Theme.Color.warning.opacity(0.16) : Theme.Color.warning.opacity(0.08)
+            }
+            return isHovered ? Color.primary.opacity(0.08) : Color.primary.opacity(0.04)
+        }
+
+        private var borderColor: Color {
+            if isHighlighted {
+                return isHovered ? Theme.Color.warning.opacity(0.35) : Theme.Color.warning.opacity(0.2)
+            }
+            return isHovered ? Color.primary.opacity(0.18) : Color.primary.opacity(0.1)
+        }
+    }
+}
+
+/// Bordered destructive button with warning styling.
+struct ModernWarningButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        ModernWarningButtonBody(configuration: configuration)
+    }
+
+    private struct ModernWarningButtonBody: View {
+        let configuration: Configuration
+        @State private var isHovered = false
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Theme.Color.warning)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                        .fill(isHovered ? Theme.Color.warning.opacity(0.16) : Theme.Color.warning.opacity(0.08))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                        .strokeBorder(isHovered ? Theme.Color.warning.opacity(0.35) : Theme.Color.warning.opacity(0.2), lineWidth: 0.8)
+                )
+                .scaleEffect(configuration.isPressed ? 0.97 : (isHovered ? 1.01 : 1.0))
+                .animation(.easeInOut(duration: 0.12), value: isHovered)
+                .animation(.easeInOut(duration: 0.08), value: configuration.isPressed)
+                .onHover { isHovered = $0 }
+                .pointingHandCursor()
+        }
+    }
+}
+
+/// Subtle secondary action button with hover pill background (for footer settings).
+struct SubtleSecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        SubtleSecondaryButtonBody(configuration: configuration)
+    }
+
+    private struct SubtleSecondaryButtonBody: View {
+        let configuration: Configuration
+        @State private var isHovered = false
+
+        var body: some View {
+            configuration.label
+                .foregroundStyle(isHovered ? Color.primary : Color.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(isHovered ? Color.primary.opacity(0.08) : Color.clear)
+                )
+                .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+                .animation(.easeInOut(duration: 0.12), value: isHovered)
+                .animation(.easeInOut(duration: 0.08), value: configuration.isPressed)
+                .onHover { isHovered = $0 }
+                .pointingHandCursor()
+        }
+    }
+}
+
+/// Subtle destructive action button with warning hover pill (for footer quit).
+struct SubtleDestructiveButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        SubtleDestructiveButtonBody(configuration: configuration)
+    }
+
+    private struct SubtleDestructiveButtonBody: View {
+        let configuration: Configuration
+        @State private var isHovered = false
+
+        var body: some View {
+            configuration.label
+                .font(.callout.weight(.medium))
+                .foregroundStyle(Theme.Color.warning)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(isHovered ? Theme.Color.warning.opacity(0.12) : Color.clear)
+                )
+                .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+                .animation(.easeInOut(duration: 0.12), value: isHovered)
+                .animation(.easeInOut(duration: 0.08), value: configuration.isPressed)
+                .onHover { isHovered = $0 }
+                .pointingHandCursor()
+        }
+    }
+}
+
+// MARK: - Search Box
+
+/// Unified macOS-style search box with reactive focus and clear button.
+struct SearchBoxView: View {
+    @Binding var text: String
+    let placeholder: String
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(isFocused ? Color.accentColor : Color.secondary)
+
+            TextField(placeholder, text: $text)
+                .textFieldStyle(.plain)
+                .focused($isFocused)
+
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .bold))
+                }
+                .buttonStyle(HoverIconButtonStyle(size: 18))
+                .transition(.opacity.combined(with: .scale(scale: 0.8)))
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                .fill(Color.primary.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                .strokeBorder(isFocused ? Color.accentColor.opacity(0.5) : Color.primary.opacity(0.08), lineWidth: 1)
+        )
+        .animation(.easeInOut(duration: 0.15), value: isFocused)
+        .animation(.easeInOut(duration: 0.15), value: text.isEmpty)
     }
 }

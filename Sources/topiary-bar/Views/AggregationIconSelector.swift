@@ -41,26 +41,35 @@ private struct IconOptionButton: View {
     let isSelected: Bool
     let action: () -> Void
 
+    @State private var isHovered = false
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
                 iconView
-                    .frame(width: 44, height: 44)
-                    .background(isSelected ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .frame(width: 48, height: 48)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(isSelected ? Color.accentColor.opacity(0.15) : (isHovered ? Color.primary.opacity(0.08) : Color.primary.opacity(0.04)))
+                    )
                     .overlay {
-                        if isSelected {
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.accentColor, lineWidth: 2)
-                        }
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(isSelected ? Color.accentColor : (isHovered ? Color.primary.opacity(0.18) : Color.primary.opacity(0.08)), lineWidth: isSelected ? 2 : 1)
                     }
+                    .shadow(color: isSelected ? Color.accentColor.opacity(0.2) : .clear, radius: 4, x: 0, y: 2)
 
                 Text(title)
                     .font(.caption)
-                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundStyle(isSelected ? .primary : (isHovered ? .primary : .secondary))
             }
+            .scaleEffect(isHovered ? 1.03 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: isHovered)
+            .animation(.easeInOut(duration: 0.15), value: isSelected)
         }
         .buttonStyle(.plain)
+        .pointingHandCursor()
+        .onHover { isHovered = $0 }
     }
 
     @ViewBuilder
@@ -68,26 +77,30 @@ private struct IconOptionButton: View {
         switch iconType {
         case .dots:
             HStack(spacing: 4) {
-                Circle().fill(Color.primary).frame(width: 6, height: 6)
-                Circle().fill(Color.primary).frame(width: 6, height: 6)
-                Circle().fill(Color.primary).frame(width: 6, height: 6)
+                Circle().fill(isSelected ? Color.accentColor : Color.primary).frame(width: 6, height: 6)
+                Circle().fill(isSelected ? Color.accentColor : Color.primary).frame(width: 6, height: 6)
+                Circle().fill(isSelected ? Color.accentColor : Color.primary).frame(width: 6, height: 6)
             }
         case .grid:
             Image(systemName: "square.grid.2x2")
                 .font(.title2)
+                .foregroundStyle(isSelected ? Color.accentColor : .primary)
         case .chevron:
             Image(systemName: "chevron.down")
                 .font(.title2)
+                .foregroundStyle(isSelected ? Color.accentColor : .primary)
         case .square:
             Image(systemName: "square.fill")
                 .font(.title2)
+                .foregroundStyle(isSelected ? Color.accentColor : .primary)
         case .circle:
             Image(systemName: "circle.fill")
                 .font(.title2)
+                .foregroundStyle(isSelected ? Color.accentColor : .primary)
         case .transparent:
             Image(systemName: "circle.dotted")
                 .font(.title2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(isSelected ? Color.accentColor : .secondary)
         }
     }
 }

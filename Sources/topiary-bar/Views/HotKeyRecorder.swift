@@ -31,18 +31,18 @@ struct HotKeyRecorderField: View {
     let l10n: L10nTable
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             HotKeyRecorder(hotKey: $hotKey, l10n: l10n)
-                .frame(minWidth: 130, minHeight: 26)
+                .frame(minWidth: 130, minHeight: 28)
 
             if hotKey != nil {
                 Button {
                     hotKey = nil
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HoverIconButtonStyle(size: 22, isDestructive: true))
                 .help(l10n.hotKeyClear)
                 .accessibilityLabel(l10n.hotKeyClear)
             }
@@ -61,6 +61,11 @@ final class HotKeyRecorderView: NSView {
     }
 
     override var acceptsFirstResponder: Bool { true }
+
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
 
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
@@ -105,21 +110,23 @@ final class HotKeyRecorderView: NSView {
         let isDark = effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         let background = isRecording
             ? NSColor.controlAccentColor.withAlphaComponent(0.18)
-            : (isDark ? NSColor.white.withAlphaComponent(0.07) : NSColor.black.withAlphaComponent(0.05))
+            : (isDark ? NSColor.white.withAlphaComponent(0.06) : NSColor.black.withAlphaComponent(0.04))
 
         let path = NSBezierPath(roundedRect: bounds, xRadius: 6, yRadius: 6)
         background.setFill()
         path.fill()
-        if isRecording {
-            NSColor.controlAccentColor.setStroke()
-            path.lineWidth = 1
-            path.stroke()
-        }
+
+        let strokeColor = isRecording
+            ? NSColor.controlAccentColor
+            : (isDark ? NSColor.white.withAlphaComponent(0.12) : NSColor.black.withAlphaComponent(0.08))
+        strokeColor.setStroke()
+        path.lineWidth = 1
+        path.stroke()
 
         let text = isRecording ? recordingText : currentDisplay
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: NSFont.systemFontSize, weight: .medium),
-            .foregroundColor: isRecording ? NSColor.secondaryLabelColor : NSColor.labelColor,
+            .foregroundColor: isRecording ? NSColor.controlAccentColor : NSColor.labelColor,
         ]
         let attributed = NSAttributedString(string: text, attributes: attributes)
         let size = attributed.size()
