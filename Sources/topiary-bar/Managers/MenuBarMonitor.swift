@@ -234,6 +234,12 @@ final class MenuBarMonitor {
         "com.apple.PowerChime",
         "com.apple.WorkflowKit.ShortcutsViewService",
         "com.apple.systemuiserver",
+        "com.apple.chronod",
+        "com.apple.widgets.extension",
+        "com.apple.intelligenceplatform",
+        "com.apple.IntelligencePlatform",
+        "com.apple.GenerativeAssistant",
+        "com.apple.privatecloudcompute.agent",
     ]
 
     /// `NSRunningApplication.icon` hits the disk on every access, and the scan
