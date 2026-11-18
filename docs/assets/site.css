@@ -26,7 +26,7 @@
   --text: #1d1d1f;
   --text-muted: #6e6e73;
   --link: #007AFF;          /* macOS system blue, 5.5:1 on white */
-  --brand: #2E7D52;         /* the icon's green — memory readout only */
+  --brand: #2E7D52;         /* UI brand green — memory readout only; the v6 mark is ink+paper, no green */
   --accent: #0A84FF;        /* focus rings, nothing else */
   --cta-bg: #1d1d1f;        /* Apple-style monochrome pill; the brand green is
                                deliberately NOT a button colour here either */

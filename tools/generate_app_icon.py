@@ -39,8 +39,24 @@ Design lineage
   Dock), and gives the right knob a grey face with a dark rim so it survives a
   light panel. v4-plain is the control: both fixes, but the old stroke-tier
   small master, so the sheet shows exactly what the simplified tier buys.
+* v6 (this file, shipped):审美重做 against the Cinder standard (ADR-0052).
+  The v5 mark was the exact thing that standard rejects — a skeuomorphic
+  frosted-glass panel built from gradients, sheen, speculars and shadows.
+  v6 keeps the IDENTITY (two rails, left high / right low) and throws away
+  the whole shading vocabulary: one ink field (#34322D) + one paper glyph
+  (#F7F4EE), the same two colours as cinder/build/icon.svg. A rail is an
+  equal-width band; where a knob crosses it the rail is REALLY absent —
+  painted out in ink, never masked — with a gap of one band width (the
+  "under strand absent, cut = band" rule from The Knot). The signature
+  green leaves the mark entirely and lives only in UI tokens, as ADR-0052
+  requires. Screen-space weight is matched to Cinder (~16% white coverage
+  at 256 px vs 6% for a literal 27u straight rail), and the small tier is
+  an independent, heavier drawing. Candidates: v6-beads (butt cut, tiny
+  white nub at the rail end), v6-eyes (+ pupil), v6-thread (← shipped:
+  clean band-width gap, no nub), v6-link (+ a centre over/under crossing
+  that reads as a defect at small sizes).
 
-Geometry (unchanged — identity constants)
+Geometry (v2–v5 identity constants; v6 keeps rails + diagonal, retunes x)
 -----------------------------------------
 * Full-bleed canvas; corner radius = 0.2257 * side (the macOS 26 "Tahoe"
   grid v1 already used; also what macOS 12–15 render).
@@ -74,7 +90,7 @@ Variants (candidates kept for the record)
 
 Usage
 -----
-    python3 tools/generate_app_icon.py                  # draw v4a + asset set
+    python3 tools/generate_app_icon.py                  # draw v6-thread + asset set
     python3 tools/generate_app_icon.py --variant v3c    # any v2*/v3*/v4* variant
     python3 tools/generate_app_icon.py --sheet          # candidate review sheet
     python3 tools/generate_app_icon.py --review         # small-size + silhouette
@@ -368,8 +384,11 @@ SMALL_GEOMETRY = {
 }
 
 # Canonical brand swatch — the two values the app (Theme.Color.brand) and the
-# website (--brand) share with the icon. Derived from the large-size accent
-# (56,94,72 light / 122,172,142 dark face) lifted to a mid tone. The ratios
+# website (--brand) share. Both are UI-token colours only: since v6 the mark
+# itself is ink + paper (Cinder ADR-0052 — signature colour stays out of the
+# glyph), so this constant is no longer read by the drawing code. It remains
+# the single source of truth the two UI consumers are checked against.
+# Derived from the v3 large-size accent lifted to a mid tone. The ratios
 # below are measured (WCAG relative luminance), not estimated:
 #   #2E7D52 = 5.03:1 on #ffffff, 4.62:1 on #f5f5f7   -> light-mode text
 #   #7CBE96 = 7.83:1 on #1c1c1e                      -> dark-mode text
@@ -385,6 +404,43 @@ BRAND_CONSUMERS = (
     "docs/assets/site.css",
 )
 
+# ---------------------------------------------------------------- v6 mark
+#
+# Cinder discipline applied without joining The Knot family. Two colours only:
+# the field IS the ink token and the glyph IS the paper token (same hexes as
+# cinder/build/icon.svg, so the whole product family reads as one hand).
+# Signature green stays OUT of the mark — it lives in the UI tokens, exactly
+# as ADR-0052 requires. No gradient, no sheen, no specular, no blur, no shadow.
+#
+# Identity kept: two vertical rails, left knob high / right knob low. The
+# diagonal survives; what changes is the vocabulary — a rail is now an
+# equal-width paper band and a knob is a paper disc threaded onto it with a
+# genuine INK gap of exactly one band-width around it (the under strand is
+# really absent, never masked). That is Cinder's "cut width = band width"
+# rule carried over to a non-knot mark.
+INK = (52, 50, 45)      # #34322D
+PAPER = (247, 244, 238)  # #F7F4EE
+
+V6_GEO = {
+    # x pulled out from v5's 38.5/61.5 so the mark occupies ~78% of the 512
+    # grid (Cinder's 56u margin) instead of hugging the centre. Two rails and
+    # the high-left / low-right diagonal are the identity; the exact x is a
+    # layout dial, and 78% is the family's hard constraint.
+    "rail_x": (0.29, 0.71),
+    "rail_top": 0.17,
+    "rail_bottom": 0.83,
+    "disc_y": (0.33, 0.67),
+    "disc_r": 0.132,
+    # A straight rail carries far less ink than the same band wrapped round
+    # a knot's lobes. Cinder's 27.25u is right for a closed trefoil; on two
+    # straight bars it lands at 6% white coverage vs Cinder's ~17%. Scaled
+    # here to match visual weight (≈14–16%): the family rule is equal-weight
+    # bands, not an identical number on a different topology.
+    "band": 60 / S,
+}
+
+V6_STYLES = ("beads", "eyes", "thread", "link")
+
 # Geometry in fractions of the side (identity constants + per-candidate dials).
 GEOMETRY = {
     "rail_x": (0.385, 0.615),   # rail centre lines
@@ -394,6 +450,15 @@ GEOMETRY = {
 }
 
 VARIANTS = {
+    # -- v6 (Cinder-discipline round): flat ink field + equal paper bands.
+    #    No gradient / sheen / specular / blur — the mark is two colours and
+    #    one construction rule (under strand genuinely absent), the way
+    #    ADR-0052 builds The Knot without joining that family. Identity kept:
+    #    two rails, left disc high / right disc low.
+    "v6-beads":  {"style": "beads",  "small": "v6"},   # clean reference
+    "v6-eyes":   {"style": "eyes",   "small": "v6"},   # disc + ink pupil
+    "v6-thread": {"style": "thread", "small": "v6"},   # butt cut, no moat
+    "v6-link":   {"style": "link",   "small": "v6"},   # rails trade over/under
     # -- v5 (macOS 27 round): "lumina" — evolved material depth with micro-facet
     #    concentric reflection ring on the brand green dial, top-edge ambient prism
     #    refraction on the frosted glass panel, and refined contrast for macOS 27.
@@ -723,6 +788,86 @@ def draw_small_master(variant: str, mode: str) -> Image.Image:
     return img.resize((S, S), Image.LANCZOS)
 
 
+def draw_v6(variant: str, mode: str, size: int) -> Image.Image:
+    """Cinder-discipline mark: ink field + two equal paper bands + two discs.
+
+    The mark is the same construction logic as Cinder's knot, minus the knot:
+    every crossing is a genuine gap, not a mask. A disc sits on a rail with an
+    ink moat exactly one band wide around it, so the rail is REALLY absent
+    where the disc passes over — under/over reads without any alpha trick.
+
+    Variants:
+      * beads  — solid discs, ink-moat gaps (the clean reference).
+      * eyes   — discs carry an ink pupil; a second, smaller band-width rule.
+      * thread — no moat: the rail runs under the disc and reappears, the
+                 Cinder "under absent" made literal with a butt cut.
+      * link   — the two rails swap over at the centre via one over/under
+                 gap, tying the two reads together (closest to The Knot).
+
+    `size` selects the tier: <=32 uses a simplified small master — same
+    geometry, band widened to Cinder's 1.86x small-stroke factor, drops the
+    pupil and the link (detail a 16 px panel cannot carry).
+    """
+    g = V6_GEO
+    small = size <= 32
+    band = g["band"] * (1.86 if small else 1.0)
+    style = variant.split("-", 1)[1]
+    if small:
+        style = "beads"  # simplify: geometry survives, vocabulary does not
+
+    W = S * SUPERSAMPLE
+    s = lambda v: round(v * W)
+
+    img = Image.new("RGBA", (W, W), (*INK, 255))
+    # The mark lands on 78% of the grid; master is full-bleed ink (the
+    # squircle is applied by the shape owner: actool on macOS 26, the mask
+    # on the .icns / web paths). No rim, no gradient — the field IS the ink.
+    cx = [s(g["rail_x"][0]), s(g["rail_x"][1])]
+    top, bot = s(g["rail_top"]), s(g["rail_bottom"])
+    rail_w = s(band)
+    disc_r = s(g["disc_r"])
+    disc_y = [s(g["disc_y"][0]), s(g["disc_y"][1])]
+
+    def band_rect(x: int) -> tuple:
+        return (x - rail_w // 2, top, x + rail_w // 2, bot)
+
+    # --- rails. Full-length paper bands; the disc then rides on top.
+    # `link` adds one over/under crossing at the centre: the left band is
+    # genuinely absent there, the right one unbroken — Cinder's knot rule
+    # reduced to its smallest possible dose.
+    ImageDraw.Draw(img).rounded_rectangle(
+        band_rect(cx[0]), radius=rail_w // 2, fill=(*PAPER, 255)
+    )
+    ImageDraw.Draw(img).rounded_rectangle(
+        band_rect(cx[1]), radius=rail_w // 2, fill=(*PAPER, 255)
+    )
+    if style == "link":
+        mid = (top + bot) // 2
+        img.paste(INK, (cx[0] - rail_w // 2 - 1, mid - s(band),
+                        cx[0] + rail_w // 2 + 1, mid + s(band)))
+
+    # --- discs. The rail is REALLY absent under each disc — painted out in
+    # ink, never masked. `beads`/`eyes` use a butt cut (rail ends at the disc
+    # edge); `thread`/`link` leave one extra band-width of ink above and
+    # below, Cinder's "under strand absent, gap = band width" verbatim.
+    d = ImageDraw.Draw(img)
+    for i, x in enumerate(cx):
+        y = disc_y[i]
+        r = disc_r
+        cut = r + (s(band) if style in ("thread", "link") else 0)
+        d.rectangle((x - rail_w // 2 - 1, y - cut,
+                     x + rail_w // 2 + 1, y + cut), fill=(*INK, 255))
+    for i, x in enumerate(cx):
+        y = disc_y[i]
+        r = disc_r
+        d.ellipse((x - r, y - r, x + r, y + r), fill=(*PAPER, 255))
+        if style == "eyes":
+            pr = round(r * 0.42)
+            d.ellipse((x - pr, y - pr, x + pr, y + pr), fill=(*INK, 255))
+
+    return img.resize((S, S), Image.LANCZOS)
+
+
 def apply_mask(master: Image.Image, size: int) -> Image.Image:
     icon = master.resize((size, size), Image.LANCZOS).convert("RGBA")
     icon.putalpha(squircle_mask(size))
@@ -739,13 +884,16 @@ def master_for(variant: str, mode: str, size: int) -> Image.Image:
     32 px; every other variant falls back to the v3 stroke-tier behaviour.
     """
     tier = 32 if size <= 32 else (64 if size <= 64 else 0)
+    v6 = VARIANTS[variant].get("small") == "v6"
     simplified = tier == 32 and VARIANTS[variant].get("small") == "simplified"
-    key = (variant, mode, "small" if simplified else tier)
+    key = (variant, mode, "small" if (simplified or v6 and tier == 32) else tier)
     if key not in _master_cache:
-        _master_cache[key] = (
-            draw_small_master(variant, mode) if simplified
-            else draw_variant(variant, mode, size_class=tier)
-        )
+        if v6:
+            _master_cache[key] = draw_v6(variant, mode, size)
+        elif simplified:
+            _master_cache[key] = draw_small_master(variant, mode)
+        else:
+            _master_cache[key] = draw_variant(variant, mode, size_class=tier)
     return _master_cache[key]
 
 
@@ -1010,9 +1158,10 @@ def check_brand() -> int:
     """Guard the brand hue against drift between icon, app and website.
 
     The failure this prevents is the ordinary one: someone retints one surface
-    and the three quietly diverge, so the Dock icon no longer matches the site
-    and the app's accent matches neither. Every hex in BRAND_GREEN must appear
-    verbatim in every consumer file.
+    and the two quietly diverge, so the site's brand no longer matches the
+    app's. Every hex in BRAND_GREEN must appear verbatim in every consumer
+    file. (The mark itself is ink + paper since v6 and carries no green —
+    this gate is about the two UI tokens staying in sync, not the icon.)
     """
     bad = []
     for rel in BRAND_CONSUMERS:
@@ -1034,7 +1183,7 @@ def check_brand() -> int:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--variant", choices=sorted(VARIANTS), default="v5-lumina")
+    ap.add_argument("--variant", choices=sorted(VARIANTS), default="v6-thread")
     ap.add_argument("--sheet", action="store_true", help="emit design/icon/contact-sheet.png")
     ap.add_argument("--review", action="store_true",
                     help="emit design/icon/review-small-sizes.png")
@@ -1075,8 +1224,8 @@ def main() -> None:
         print(f"review sheet -> {out}")
 
     if args.review:
-        # v3a stays in the strip as the "before" of the small-tier comparison.
-        review = small_review(["v3a-accent", "v4b-plain", "v4a-refined", "v5-lumina"])
+        # v5 stays in the strip as the "before" — the last skeuomorphic round.
+        review = small_review(["v5-lumina", "v6-beads", "v6-thread"])
         out = MASTERS.parent / "review-small-sizes.png"
         review.save(out)
         print(f"small-size review -> {out}")

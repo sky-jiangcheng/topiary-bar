@@ -50,13 +50,15 @@ enum Theme {
         /// Slightly stronger fill for cards and memory bars.
         static let tertiaryFill = SwiftUI.Color.secondary.opacity(0.08)
 
-        /// The brand hue — the icon's own green, lifted to a mid tone.
+        /// The brand hue — a UI-token green, lifted to a mid tone.
         ///
         /// `#2E7D52` on light (5.03:1 on white) and `#7CBE96` on dark
         /// (7.83:1 on the dark canvas); the pair is the contract shared with
         /// `tools/generate_app_icon.py` (BRAND_GREEN) and the website
-        /// (`--brand`), and `--check-brand` fails the build if any of the
-        /// three drifts apart. Do not use one on the other mode's ground:
+        /// (`--brand`), and `--check-brand` fails the build if either drifts.
+        /// Since the v6 mark (ink + paper) the signature green lives only
+        /// here and on the website — never in the app icon. Do not use one
+        /// on the other mode's ground:
         /// #2E7D52 only reaches 3.38:1 on dark, #7CBE96 only 2.17:1 on light.
         static let brand = SwiftUI.Color(nsColor: NSColor(name: nil) { appearance in
             let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
